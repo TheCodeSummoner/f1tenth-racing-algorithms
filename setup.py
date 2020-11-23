@@ -34,7 +34,8 @@ setuptools.setup(
         "Programming Language :: Python :: 3.6",
     ],
     install_requires=[
-
+        "pyyaml",
+        "rospkg",
     ],
     python_requires=">=3.6",
 )
