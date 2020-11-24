@@ -25,7 +25,7 @@ setuptools.setup(
     maintainer=metadata["__lead__"],
     maintainer_email=metadata["__email__"],
     url=metadata["__url__"],
-    packages=setuptools.find_namespace_packages(),
+    packages=setuptools.find_packages(exclude=("tests",)),
     package_data={"f1tenth": PACKAGE_DATA},
     include_package_data=True,
     classifiers=[
@@ -36,6 +36,7 @@ setuptools.setup(
     install_requires=[
         "pyyaml",
         "rospkg",
+        "numpy",
     ],
     python_requires=">=3.6",
 )
