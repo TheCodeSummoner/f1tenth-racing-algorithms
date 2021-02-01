@@ -2,12 +2,12 @@
 Follow the gap implementation.
 """
 import numpy as np
-from ..common.racer import Racer
+from ..common import Racer
 from .constants import KP
 from .constants import AVERAGE_SPEED, MAX_SPEED, MIN_SPEED, MAX_SPEED_SELECTION_THRESHOLD, MIN_SPEED_SELECTION_THRESHOLD
 
 
-class FollowTheGap(Racer):
+class FollowTheGapRacer(Racer):
     """
     Follow the gap racer drives by steering towards the largest gap in front of it.
     """
