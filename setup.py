@@ -35,8 +35,10 @@ setuptools.setup(
     ],
     install_requires=[
         "pyyaml",
-        "rospkg",
         "numpy",
+        "matplotlib",
+        "casadi",
+        "do_mpc",
     ],
     python_requires=">=3.6",
 )
