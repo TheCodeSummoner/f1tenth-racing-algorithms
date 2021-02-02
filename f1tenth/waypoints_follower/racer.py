@@ -124,12 +124,21 @@ class WaypointsFollowerRacer(Racer):
     def __init__(self, waypoints_file_path: str = WAYPOINTS_FILE_PATH):
         super().__init__()
         self._mpc = WaypointsFollowerMPC()
-        self._mpc.setup()
 
         # Need iteration over waypoints to adjust the target positions when needed
         self._waypoints: Tuple[WaypointsFollowerRacer.Waypoint, ...]
         self._read_waypoints(waypoints_file_path)
         self._waypoints_iterator = 0
+
+        # Finally, configure MPC, which will enable the calling code to run properly
+        self._mpc.setup()
+
+    @property
+    def ready(self):
+        """
+        Determine if the racer is ready.
+        """
+        return self._mpc.ready
 
     def _read_waypoints(self, file_path: str):
         """

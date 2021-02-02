@@ -90,6 +90,13 @@ class ModelPredictiveControl(ABC):
         self._constraints = ControlConstraints()
 
     @property
+    def ready(self):
+        """
+        Determine if the MPC has been configured.
+        """
+        return self._ready
+
+    @property
     @abstractmethod
     def stage_cost(self):
         """

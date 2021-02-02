@@ -10,7 +10,8 @@ def run():
     Start the racer (blocking call).
     """
     rospy.init_node("time")
-    WaypointsFollowerRacer().start()
+    waypoints_follower_racer = WaypointsFollowerRacer()
+    waypoints_follower_racer.start()
 
 
 __all__ = [
