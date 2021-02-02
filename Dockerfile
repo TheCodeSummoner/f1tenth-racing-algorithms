@@ -39,7 +39,7 @@ RUN sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main"
 # Install F1/10 dependencies, the simulator, and build
 RUN apt-get install git -y \
     && apt-get install ros-melodic-tf2-geometry-msgs ros-melodic-ackermann-msgs ros-melodic-joy ros-melodic-map-server -y \
-    && RUN python3 -m pip install catkin_pkg \
+    && python3 -m pip install catkin_pkg \
     && mkdir -p $WORKSPACE/simulator/src \
     && cd $WORKSPACE/simulator/src \
     && git clone https://github.com/f1tenth/f1tenth_simulator.git \
