@@ -184,12 +184,11 @@ class ModelPredictiveControl(ABC):
 
         # Pass MPC and other parameters to the controller
         nlpsol_opts = {
-            "ipopt.linear_solver": "MA27"
-        } if self._suppress_outputs else {
-            "ipopt.linear_solver": "MA27",
             "ipopt.print_level": 0,
             "ipopt.sb": "yes",
             "print_time": 0
+        } if self._suppress_outputs else {
+
         }
         self._controller.set_param(
             n_horizon=self._horizon_length,
