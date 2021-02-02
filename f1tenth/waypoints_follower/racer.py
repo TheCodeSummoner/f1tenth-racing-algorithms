@@ -137,7 +137,7 @@ class WaypointsFollowerRacer(Racer):
         """
         waypoints = []
         with open(file_path) as waypoints_fd:
-            reader = csv.reader(waypoints_fd, delimeter=",")
+            reader = csv.reader(waypoints_fd, delimiter=",")
             for x, y in reader:
                 waypoints.append(self.Waypoint(float(x.strip()), float(y.strip())))
 
