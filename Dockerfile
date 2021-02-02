@@ -54,6 +54,6 @@ RUN mkdir $WORKSPACE/code \
 
 # Finally, put all relevant source commands into a single setup-workspace file
 RUN touch $WORKSPACE/setup-workspace.sh \
-    && echo "source $WORKSPACE/simulator/devel/setup.bash" >> $WORKSPACE/setup-workspace.sh \
     && echo "source /opt/ros/melodic/setup.bash" >> $WORKSPACE/setup-workspace.sh \
+    && echo "source $WORKSPACE/simulator/devel/setup.bash" >> $WORKSPACE/setup-workspace.sh \
     && echo "export PYTHONPATH=/opt/ros/melodic/lib/python2.7/dist-packages"
