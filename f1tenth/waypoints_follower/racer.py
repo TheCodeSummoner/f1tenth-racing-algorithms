@@ -50,7 +50,7 @@ class WaypointsFollowerMPC(ModelPredictiveControl):
     def target_y(self, value: float):
         self._ty = value
 
-    def _prepare_target_position_template(self):
+    def _prepare_target_position_template(self, _):
         """
         Following the docs of do_mpc, an approach to populate the target position variables with values, at any given
         point.
