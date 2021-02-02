@@ -70,14 +70,14 @@ class Racer(ABC):
         """
         Get current vehicle's position in (x, y) coordinates.
         """
-        return self._lidar_data.pose.pose.position.x, self._lidar_data.pose.pose.position.y
+        return self._odometry_data.pose.pose.position.x, self._odometry_data.pose.pose.position.y
 
     def _retrieve_heading_angle(self) -> float:
         """
         Get current vehicle's heading angle (yaw) with respect to the y-axis.
         """
-        quaternion_z = self._lidar_data.pose.pose.orientation.z
-        quaternion_w = self._lidar_data.pose.pose.orientation.w
+        quaternion_z = self._odometry_data.pose.pose.orientation.z
+        quaternion_w = self._odometry_data.pose.pose.orientation.w
         return math.atan2(2 * (quaternion_z * quaternion_w), 1 - 2 * (quaternion_z * quaternion_z))
 
     def on_lidar_update(self, data: LaserScan):
