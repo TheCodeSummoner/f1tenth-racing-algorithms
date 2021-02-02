@@ -39,7 +39,7 @@ RUN sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main"
 # Install F1/10 dependencies, the simulator, and build
 RUN apt-get install git -y \
     && apt-get install ros-melodic-tf2-geometry-msgs ros-melodic-ackermann-msgs ros-melodic-joy ros-melodic-map-server -y \
-    && python3 -m pip install catkin_pkg \
+    && python3.8 -m pip install catkin_pkg \
     && mkdir -p $WORKSPACE/simulator/src \
     && cd $WORKSPACE/simulator/src \
     && git clone https://github.com/f1tenth/f1tenth_simulator.git \
@@ -50,7 +50,7 @@ RUN mkdir $WORKSPACE/code \
     && cd $WORKSPACE/code \
     && git clone https://89447c1d8e792ef3e72f5a02585cad4dc5bc686d@github.com/TheCodeSummoner/f1tenth-racing-algorithms.git \
     && cd $WORKSPACE/code/f1tenth-racing-algorithms \
-    && python3 -m pip install .
+    && python3.8 -m pip install .
 
 # Finally, put all relevant source commands into a single setup-workspace file
 RUN touch $WORKSPACE/setup-workspace.sh \
