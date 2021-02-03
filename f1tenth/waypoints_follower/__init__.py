@@ -2,7 +2,7 @@
 Waypoints-based trajectory follower MPC.
 """
 import rospy
-from .racer import WaypointsFollowerRacer
+from .racer import WaypointsFollowerRacer, WaypointsFollowerMPC
 
 
 def run():
@@ -10,11 +10,13 @@ def run():
     Start the racer (blocking call).
     """
     rospy.init_node("time")
-    waypoints_follower_racer = WaypointsFollowerRacer()
-    waypoints_follower_racer.start()
+    mpc = WaypointsFollowerMPC()
+    mpc.setup()
+    WaypointsFollowerRacer(mpc).start()
 
 
 __all__ = [
     "WaypointsFollowerRacer",
+    "WaypointsFollowerMPC",
     "run"
 ]
