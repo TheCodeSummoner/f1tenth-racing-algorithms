@@ -19,27 +19,27 @@ This sub-package follows the standard usage instructions of the parent package.
 #### Run from python console
 
 ```python
-from f1tenth import follow_the_gap
+from f1tenth import waypoints_follower
 
-follow_the_gap.run()
+waypoints_follower.run()
 ```
 
 #### Run main directly
 
 ```
-python <path>/f1tenth/follow_the_gap
+python <path>/f1tenth/waypoints_follower
 ```
 
 or
 
 ```
-python <path>/f1tenth/follow_the_gap/__main__.py
+python <path>/f1tenth/waypoints_follower/__main__.py
 ```
 
 #### Run installed files
 
 ```
-python -m f1tenth.follow_the_gap
+python -m f1tenth.waypoints_follower
 ```
 
 [1]: https://f1tenth.org/build.html
