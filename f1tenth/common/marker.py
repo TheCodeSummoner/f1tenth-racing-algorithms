@@ -1,5 +1,5 @@
 """
-todo
+Visualisation module for spawning markers on the track(s).
 """
 from collections import namedtuple
 from visualization_msgs.msg import Marker
@@ -21,18 +21,14 @@ DEFAULT_SCALE = 0.2
 DEFAULT_COLOUR = MarkerColour(1.0, 0.0, 0.0)
 DEFAULT_LIFETIME = 0.1
 
-# TODO: Check if this doesn't result in errors
+# Declare to which topic should the marker messages be published
 PUBLISHER = Publisher(MARKER_TOPIC, Marker, queue_size=100)
 
 
-def mark(position_x: float, position_y: float,
-         colour: MarkerColour = DEFAULT_COLOUR,
-         scale: float = DEFAULT_SCALE,
+def mark(position_x: float, position_y: float, colour: MarkerColour = DEFAULT_COLOUR, scale: float = DEFAULT_SCALE,
          duration: float = DEFAULT_LIFETIME):
     """
-    todo
-
-    todo - check if not using marker.id works still
+    Spawn a marker at given location.
     """
     marker = Marker()
     marker.header.frame_id = FRAME_ID
@@ -58,5 +54,4 @@ def mark(position_x: float, position_y: float,
 
     # When should the marker disappear
     marker.lifetime = Duration(duration)
-
     PUBLISHER.publish(marker)
