@@ -144,7 +144,6 @@ class WaypointsFollowerRacer(Racer):
         if distance < NEXT_WAYPOINT_THRESHOLD:
             self._waypoints_iterator = (self._waypoints_iterator + 1) % len(self._waypoints)
             self._mpc.target_x, self._mpc.target_y = self._waypoints[self._waypoints_iterator]
-            marker.mark(self._mpc.target_x, self._mpc.target_y)
 
     def prepare_drive_command(self):
         """
@@ -159,6 +158,9 @@ class WaypointsFollowerRacer(Racer):
 
         # Change target waypoints if needed
         self._adjust_target_position(position_x, position_y)
+
+        # Mark where the vehicle is going
+        marker.mark(self._mpc.target_x, self._mpc.target_y)
 
         # Compute inputs and embed them into the ackermann message
         velocity, steering_angle = self._mpc.make_step(state)
