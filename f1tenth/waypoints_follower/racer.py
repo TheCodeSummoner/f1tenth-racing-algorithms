@@ -7,7 +7,6 @@ from collections import namedtuple
 import casadi
 import numpy as np
 from .constants import HORIZON_LENGTH, TIME_STEP
-from .constants import DISTANCE_IMPORTANCE, VELOCITY_IMPORTANCE
 from .constants import WAYPOINTS_FILE_PATH, NEXT_WAYPOINT_THRESHOLD
 from ..common import Racer, ModelPredictiveControl
 
@@ -78,11 +77,6 @@ class WaypointsFollowerMPC(ModelPredictiveControl):
         Both values are parametrised and may have different importance.
         """
         return (self._target_x - self._position_x) ** 2 + (self._target_y - self._position_y) ** 2
-
-        # TODO: This is how the terminal cost should look like, however, the constants must be casadi parameters
-        # return DISTANCE_IMPORTANCE * ((self._target_x - self._position_x) ** 2 +
-        #                               (self._target_y - self._position_y) ** 2) \
-        #     + VELOCITY_IMPORTANCE * ((self._constraints.max_velocity - self._velocity) ** 2)
 
     def configure_model(self):
         """
