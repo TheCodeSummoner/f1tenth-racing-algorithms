@@ -7,9 +7,8 @@ from collections import namedtuple
 import casadi
 import numpy as np
 from .constants import HORIZON_LENGTH, TIME_STEP
-from .constants import DISTANCE_IMPORTANCE, VELOCITY_IMPORTANCE
 from .constants import WAYPOINTS_FILE_PATH, NEXT_WAYPOINT_THRESHOLD
-from ..common import Racer, ModelPredictiveControl
+from ..common import Racer, ModelPredictiveControl, marker
 
 
 class WaypointsFollowerMPC(ModelPredictiveControl):
@@ -79,11 +78,6 @@ class WaypointsFollowerMPC(ModelPredictiveControl):
         """
         return (self._target_x - self._position_x) ** 2 + (self._target_y - self._position_y) ** 2
 
-        # TODO: This is how the terminal cost should look like, however, the constants must be casadi parameters
-        # return DISTANCE_IMPORTANCE * ((self._target_x - self._position_x) ** 2 +
-        #                               (self._target_y - self._position_y) ** 2) \
-        #     + VELOCITY_IMPORTANCE * ((self._constraints.max_velocity - self._velocity) ** 2)
-
     def configure_model(self):
         """
         Additionally to the base class variables, two time varying parameters must be specified, to allow changing
@@ -130,6 +124,9 @@ class WaypointsFollowerRacer(Racer):
         self._read_waypoints(waypoints_file_path)
         self._waypoints_iterator = 0
 
+        # Mark initial target points to avoid going into (0, 0) point at first
+        self._mpc.target_x, self._mpc.target_y = self._waypoints[self._waypoints_iterator]
+
     def _read_waypoints(self, file_path: str):
         """
         Cast data points from the csv file to a collection of relevant named tuple instances.
@@ -164,6 +161,9 @@ class WaypointsFollowerRacer(Racer):
 
         # Change target waypoints if needed
         self._adjust_target_position(position_x, position_y)
+
+        # Mark where the vehicle is going
+        marker.mark(self._mpc.target_x, self._mpc.target_y)
 
         # Compute inputs and embed them into the ackermann message
         velocity, steering_angle = self._mpc.make_step(state)
