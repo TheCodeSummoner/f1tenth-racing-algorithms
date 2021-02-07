@@ -8,7 +8,7 @@ import casadi
 import numpy as np
 from .constants import HORIZON_LENGTH, TIME_STEP
 from .constants import WAYPOINTS_FILE_PATH, NEXT_WAYPOINT_THRESHOLD
-from ..common import Racer, ModelPredictiveControl
+from ..common import Racer, ModelPredictiveControl, marker
 
 
 class WaypointsFollowerMPC(ModelPredictiveControl):
@@ -144,6 +144,7 @@ class WaypointsFollowerRacer(Racer):
         if distance < NEXT_WAYPOINT_THRESHOLD:
             self._waypoints_iterator = (self._waypoints_iterator + 1) % len(self._waypoints)
             self._mpc.target_x, self._mpc.target_y = self._waypoints[self._waypoints_iterator]
+            marker.mark(self._mpc.target_x, self._mpc.target_y)
 
     def prepare_drive_command(self):
         """
