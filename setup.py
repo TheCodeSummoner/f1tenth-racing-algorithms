@@ -39,6 +39,7 @@ setuptools.setup(
         "matplotlib",
         "casadi",
         "do_mpc",
+        "rospkg",
     ],
     python_requires=">=3.6",
 )

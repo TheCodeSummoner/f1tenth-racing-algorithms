@@ -127,6 +127,9 @@ class WaypointsFollowerRacer(Racer):
         # Mark initial target points to avoid going into (0, 0) point at first
         self._mpc.target_x, self._mpc.target_y = self._waypoints[self._waypoints_iterator]
 
+        # Mark the reference trajectory for better visibility
+        marker.mark_array(self._waypoints, colour=marker.MarkerColour(0, 1, 0), scale=0.05, duration=0)
+
     def _read_waypoints(self, file_path: str):
         """
         Cast data points from the csv file to a collection of relevant named tuple instances.
