@@ -55,10 +55,10 @@ RUN mkdir $WORKSPACE/code \
 # Install yq and extend the available simulator components
 RUN curl -LJ0 https://github.com/mikefarah/yq/releases/download/v4.6.0/yq_linux_amd64 --output /usr/local/bin/yq \
     && chmod +x /usr/local/bin/yq \
-    && ./$WORKSPACE/code/f1tenth-racing-algorithms/assets/scripts/prepare-visualisation-topics.sh
+    && $WORKSPACE/code/f1tenth-racing-algorithms/assets/scripts/prepare-visualisation-topics.sh
 
 # Finally, put all relevant source commands into a single setup-workspace file
 RUN touch $WORKSPACE/setup-workspace.sh \
     && echo "source /opt/ros/melodic/setup.bash" >> $WORKSPACE/setup-workspace.sh \
     && echo "source $WORKSPACE/simulator/devel/setup.bash" >> $WORKSPACE/setup-workspace.sh \
-    && echo "export PYTHONPATH=/opt/ros/melodic/lib/python2.7/dist-packages"
+    && echo "export PYTHONPATH=/opt/ros/melodic/lib/python2.7/dist-packages" >> $WORKSPACE/setup-workspace.sh
