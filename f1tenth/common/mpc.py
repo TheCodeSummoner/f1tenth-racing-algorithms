@@ -13,17 +13,13 @@ from do_mpc.model import Model
 from do_mpc.controller import MPC
 from do_mpc.graphics import Graphics
 import numpy as np
-
-# Front and rear wheel distances, wheelbase = lr + lf
-LR = 0.17145
-LF = 0.15875
-WHEELBASE_LENGTH = 0.3302
+from .constants import LR, WHEELBASE_LENGTH
 
 
 @dataclass
 class ControlConstraints:
     """
-    Parameterisable collection of control constraints.
+    Parametrisable collection of control constraints.
     """
     min_velocity: float = 0
     max_velocity: float = 7
@@ -167,7 +163,7 @@ class ModelPredictiveControl(ABC):
         self._model.set_rhs("position_x", self._velocity * casadi.cos(self._heading_angle + slip_factor))
         self._model.set_rhs("position_y", self._velocity * casadi.sin(self._heading_angle + slip_factor))
         self._model.set_rhs("heading_angle", self._velocity * casadi.tan(self._steering_angle)
-                            * slip_factor / WHEELBASE_LENGTH)
+                            * casadi.cos(slip_factor) / WHEELBASE_LENGTH)
 
     def configure_controller(self):
         """

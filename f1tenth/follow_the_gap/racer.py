@@ -2,7 +2,7 @@
 Follow the gap implementation.
 """
 import numpy as np
-from ..common import Racer
+from ..common import Racer, marker
 from .constants import KP
 from .constants import AVERAGE_SPEED, MAX_SPEED, MIN_SPEED, MAX_SPEED_SELECTION_THRESHOLD, MIN_SPEED_SELECTION_THRESHOLD
 
@@ -19,10 +19,14 @@ class FollowTheGapRacer(Racer):
         """
         Simple follow-the-gap control.
 
-        Each iteration the steering angle and the velocity must be computed.
+        Each iteration the steering angle and the velocity must be computed. Additionally, predicted trajectory
+        is plotted for more pleasing visuals and understanding of the steering angles.
         """
-        self._command.drive.steering_angle = self._calculate_angle()
-        self._command.drive.speed = self._calculate_speed()
+        angle = self._calculate_angle()
+        speed = self._calculate_speed()
+        marker.mark_array(self.predict_trajectory(speed, angle))
+        self._command.drive.steering_angle = angle
+        self._command.drive.speed = speed
 
     def _calculate_angle(self) -> float:
         """
