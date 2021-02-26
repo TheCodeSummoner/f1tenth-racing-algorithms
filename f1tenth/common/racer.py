@@ -11,11 +11,7 @@ from rospy import Subscriber, Publisher, Time
 from sensor_msgs.msg import LaserScan
 from ackermann_msgs.msg import AckermannDriveStamped
 from nav_msgs.msg import Odometry
-
-# Drive topics are closely related to ROS technological stack
-LASER_SCAN_TOPIC = "/scan"
-ODOMETRY_TOPIC = "/odom"
-DRIVE_TOPIC = "/drive"
+from .constants import LASER_SCAN_TOPIC, DRIVE_TOPIC, ODOMETRY_TOPIC, LR, WHEELBASE_LENGTH
 
 
 class Racer(ABC):
@@ -98,6 +94,29 @@ class Racer(ABC):
         """
         self._odometry_data = data
         self._trigger_drive()
+
+    def predict_trajectory(self, velocity: float, steering_angle: float,
+                           steps_count: int = 10, time_step: float = 0.025) -> Tuple[Tuple[float, float], ...]:
+        """
+        Generate predicted trajectory points.
+        """
+        predicted_positions = list()
+        position_x, position_y = self._retrieve_position()
+        heading_angle = self._retrieve_heading_angle()
+
+        # Need this to compute the new heading angle after each step
+        predicted_heading_angle = heading_angle
+
+        for step_counter in range(steps_count):
+            time_delta = time_step + step_counter * time_step
+            slip_factor = math.atan(LR * math.tan(steering_angle) / WHEELBASE_LENGTH)
+            predicted_position_x = position_x + time_delta * velocity * math.cos(predicted_heading_angle + slip_factor)
+            predicted_position_y = position_y + time_delta * velocity * math.sin(predicted_heading_angle + slip_factor)
+            predicted_heading_angle = heading_angle + time_delta * velocity * math.tan(steering_angle) \
+                * math.cos(slip_factor) / WHEELBASE_LENGTH
+            predicted_positions.append((predicted_position_x, predicted_position_y))
+
+        return tuple(predicted_positions)
 
     @abstractmethod
     def prepare_drive_command(self):

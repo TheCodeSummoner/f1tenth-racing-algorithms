@@ -6,12 +6,10 @@ from typing import Iterable
 from collections import namedtuple
 from visualization_msgs.msg import Marker, MarkerArray
 from rospy import Publisher, Duration
+from .constants import FRAME_ID
 
 # Provide more verbose namespace for passing marker colours
 MarkerColour = namedtuple("PointMarkerColour", ["r", "g", "b"])
-
-# The frame ID shouldn't change - it is defined within the F1/10 ROS simulator
-FRAME_ID = "/map"
 
 # Define shape and action of a marker
 MARKER_TYPE = Marker.SPHERE
