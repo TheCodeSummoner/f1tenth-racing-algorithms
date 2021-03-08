@@ -1,10 +1,9 @@
 """
-Waypoints-based trajectory follower MPC.
+Modified Follow The Gap with MPC.
 """
 import rospy
-from .racer import WaypointsFollowerRacer
+from .racer import PointFollowerMPC, HalvesRacer
 from .constants import HORIZON_LENGTH, TIME_STEP
-from ..common import PointFollowerMPC
 
 
 def run():
@@ -14,10 +13,11 @@ def run():
     rospy.init_node("time")
     mpc = PointFollowerMPC(horizon_length=HORIZON_LENGTH, time_step=TIME_STEP)
     mpc.setup()
-    WaypointsFollowerRacer(mpc=mpc).start()
+    HalvesRacer(mpc=mpc).start()
 
 
 __all__ = [
-    "WaypointsFollowerRacer",
+    "PointFollowerMPC",
+    "HalvesRacer",
     "run"
 ]

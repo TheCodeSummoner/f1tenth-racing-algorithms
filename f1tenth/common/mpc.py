@@ -252,3 +252,99 @@ class ModelPredictiveControl(ABC):
         self._plotter.plot_results()
         self._plotter.reset_axes()
         plt.show()
+
+
+class PointFollowerMPC(ModelPredictiveControl):
+    """
+    Model predictive control for minimising distance from some precomputed reference point.
+
+    An additional constraint on velocity is present to prefer higher speeds.
+    """
+
+    def __init__(self, horizon_length: int, time_step: float):
+        super().__init__(
+            horizon_length=horizon_length,
+            time_step=time_step,
+            plot_results=False
+        )
+
+        # Additional states will be needed to record target position data
+        self._target_x = None
+        self._target_y = None
+
+        # Need to store actual target point values as well (so they can be retrieved in the cost function)
+        self._tx = 0
+        self._ty = 0
+
+    @property
+    def target_x(self) -> float:
+        return self._tx
+
+    @target_x.setter
+    def target_x(self, value: float):
+        self._tx = value
+
+    @property
+    def target_y(self) -> float:
+        return self._ty
+
+    @target_y.setter
+    def target_y(self, value: float):
+        self._ty = value
+
+    def _prepare_target_position_template(self, _):
+        """
+        Following the docs of do_mpc, an approach to populate the target position variables with values, at any given
+        point.
+        """
+        template = self._controller.get_tvp_template()
+
+        for k in range(self._horizon_length + 1):
+            template["_tvp", k, "target_x"] = self._tx
+            template["_tvp", k, "target_y"] = self._ty
+
+        return template
+
+    @property
+    def stage_cost(self):
+        """
+        No stage cost is specified in this approach.
+        """
+        return casadi.DM.zeros()
+
+    @property
+    def terminal_cost(self):
+        """
+        Terminal cost is the distance from the target joint with the difference from the target (max) speed.
+
+        Both values are parametrised and may have different importance.
+        """
+        return (self._target_x - self._position_x) ** 2 + (self._target_y - self._position_y) ** 2
+
+    def configure_model(self):
+        """
+        Additionally to the base class variables, two time varying parameters must be specified, to allow changing
+        the target position with time.
+        """
+        super().configure_model()
+
+        # Create time-varying-parameters, these will be populated with (potentially) different data at each call
+        self._target_x = self._model.set_variable(
+            var_type="_tvp",
+            var_name="target_x",
+            shape=(1, 1)
+        )
+        self._target_y = self._model.set_variable(
+            var_type="_tvp",
+            var_name="target_y",
+            shape=(1, 1)
+        )
+
+    def configure_controller(self):
+        """
+        Extension of the base class method simply considers setting the time varying parameters' update function.
+        """
+        super().configure_controller()
+
+        # Setup time varying params - target position can change with time
+        self._controller.set_tvp_fun(self._prepare_target_position_template)
