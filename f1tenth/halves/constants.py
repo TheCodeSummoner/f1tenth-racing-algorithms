@@ -2,12 +2,12 @@
 Algorithm-relevant and tuning constants.
 """
 # Define parameters here for easier configurability
-HORIZON_LENGTH = 4
-TIME_STEP = 0.1
+HORIZON_LENGTH = 8
+TIME_STEP = 0.027
 
 # Limits for deciding left and right halves (counter-clockwise)
 MAX_INDEX = 1080
-RIGHT_DIVERGENCE_INDEX = 300
+RIGHT_DIVERGENCE_INDEX = 350
 MID_INDEX = MAX_INDEX // 2
 LEFT_DIVERGENCE_INDEX = MAX_INDEX - RIGHT_DIVERGENCE_INDEX
 
@@ -21,7 +21,7 @@ DEFAULT_RANGE = 2.5
 FTG_DISTANCE_LIMIT = 9
 
 # Limiting area for ignoring points next to the closest point
-FTG_AREA_RADIUS_SQUARED = 5
+FTG_AREA_RADIUS_SQUARED = 16
 
 # Lidar angle increment and minimum angle
 LIDAR_MINIMUM_ANGLE = -3.1415927410125732

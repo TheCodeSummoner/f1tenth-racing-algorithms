@@ -39,7 +39,7 @@ class HalvesRacer(Racer):
         # Cloud points will not be placed correctly with respect to the car's position and heading, but we only care
         # about the distances between each pair of points, and these will be true even without positional corrections
         laser_projection = LaserProjection().projectLaser(lidar_data)
-        cloud_points = point_cloud2.read_points(laser_projection, skip_nans=True, field_names=("x", "y"))
+        cloud_points = list(point_cloud2.read_points(laser_projection, skip_nans=True, field_names=("x", "y")))
 
         # Build a list of relevant Point instances for each half
         left_points = list()
@@ -75,7 +75,7 @@ class HalvesRacer(Racer):
         # Visualise resulting coordinates and find the final drive-to-point
         marker.mark(left_x, left_y, colour=MarkerColour(0, 1, 0), channel=MarkerPublisherChannel.SECOND)
         marker.mark(right_x, right_y, colour=MarkerColour(0, 0, 1), channel=MarkerPublisherChannel.THIRD)
-        self._mpc.target_x, self._mpc.target_y = (left_x + right_x) / 2, (left_y + right_y / 2)
+        self._mpc.target_x, self._mpc.target_y = (left_x + right_x) / 2, (left_y + right_y) / 2
 
     @staticmethod
     def _mark_safety_radius(points: List[Point]):
