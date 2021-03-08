@@ -18,7 +18,21 @@ from .constants import LIDAR_MINIMUM_ANGLE, LIDAR_ANGLE_INCREMENT
 
 class HalvesRacer(Racer):
     """
-    TODO
+    The racer solves a follow-the-gap algorithm twice, for each side of the car.
+
+    Consider the following ascii graphic:
+
+    |     |     |
+    |     ^     |
+    |     |     |
+    | L [car] R |
+    |     |     |
+    |     |     |
+
+    As you can (maybe) see, the area is divided into two halves - the Left half, and the Right half (the car is assumed
+    to be going north). In this case, Follow The Gap algorithm will run for each half separately, which will result in
+    a total of two points. Then, the resulting points are combined into a single point, which is used as a target point
+    to be followed.
     """
 
     # Describe a lidar / cloud point data together
@@ -31,7 +45,7 @@ class HalvesRacer(Racer):
 
     def _adjust_target_position(self, position_x: float, position_y: float, heading_angle: float):
         """
-        TODO
+        Given current position and heading angle, find the target reference point.
         """
         lidar_data = self._lidar_data
         ranges = lidar_data.ranges
@@ -80,9 +94,9 @@ class HalvesRacer(Racer):
     @staticmethod
     def _mark_safety_radius(points: List[Point]):
         """
-        Mark far points, and the closest point and all "next" to it as distance 0 (FTG algorithm).
+        Mark too far points, the closest point, and all points 'next' to it as distance 0 (FTG algorithm).
 
-        Closest point range will also be marked as 0 because it's distance 0 away from itself.
+        Closest point's distance will also be marked as 0 because it's 0 measurement units away from itself.
         """
         closest_point = min(points, key=lambda p: p.range)
         for point in points:
@@ -96,7 +110,7 @@ class HalvesRacer(Racer):
     @staticmethod
     def _find_longest_non_zero_sequence(points: List[Point]) -> List[Point]:
         """
-        Very "manual" approach to finding such sequence.
+        Very "manual" approach to finding such a sequence.
 
         Rather than using complicated Python mechanisms (zipping, filtering, etc.), a more verbose algorithm is used for
         the benefit of understanding the methodology of this method.
@@ -145,7 +159,7 @@ class HalvesRacer(Racer):
     def _get_target_point(target_index: int, target_range: float,
                           position_x: float, position_y: float, heading_angle: float):
         """
-        TODO
+        Compute the target point given the current car's state, and the pre-fetched lidar index and range.
         """
         laser_beam_angle = (target_index * LIDAR_ANGLE_INCREMENT) + LIDAR_MINIMUM_ANGLE
         rotated_angle = laser_beam_angle + heading_angle
@@ -156,7 +170,9 @@ class HalvesRacer(Racer):
     @staticmethod
     def _get_target_index_and_range(points: List[Point], default_index: int) -> Tuple[int, float]:
         """
-        todo
+        Find target point by selecting either the default values, or the farthest point in current sample.
+
+        Lidar index and range are returned to pass them to the next method.
         """
         if not points:
             target_range = DEFAULT_RANGE
@@ -170,7 +186,9 @@ class HalvesRacer(Racer):
 
     def prepare_drive_command(self):
         """
-        TODO
+        Modified Follow The Gap with MPC.
+
+        Each iteration the steering angle and the velocity must be computed.
         """
         # Retrieve the vehicle's state
         position_x, position_y = self._retrieve_position()
