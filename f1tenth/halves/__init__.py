@@ -3,6 +3,7 @@ Modified Follow The Gap with MPC.
 """
 import rospy
 from .racer import PointFollowerMPC, HalvesRacer
+from .constants import HORIZON_LENGTH, TIME_STEP
 
 
 def run():
@@ -10,9 +11,9 @@ def run():
     Start the racer (blocking call).
     """
     rospy.init_node("time")
-    mpc = PointFollowerMPC()
+    mpc = PointFollowerMPC(horizon_length=HORIZON_LENGTH, time_step=TIME_STEP)
     mpc.setup()
-    HalvesRacer(mpc).start()
+    HalvesRacer(mpc=mpc).start()
 
 
 __all__ = [
