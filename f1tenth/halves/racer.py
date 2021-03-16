@@ -2,7 +2,7 @@
 Modified Follow The Gap with MPC.
 """
 import math
-from typing import Tuple, List
+from typing import Tuple, List, Iterable
 import dataclasses
 import numpy as np
 from laser_geometry.laser_geometry import LaserProjection
@@ -49,6 +49,7 @@ class HalvesRacer(Racer):
         """
         lidar_data = self._lidar_data
         ranges = lidar_data.ranges
+        self._visualise_current_lidar_scan(ranges, position_x, position_y, heading_angle)
 
         # Cloud points will not be placed correctly with respect to the car's position and heading, but we only care
         # about the distances between each pair of points, and these will be true even without positional corrections
@@ -183,6 +184,23 @@ class HalvesRacer(Racer):
             target_index = farthest_point.index
 
         return target_index, target_range
+
+    @staticmethod
+    def _visualise_current_lidar_scan(ranges: Iterable, position_x: float, position_y: float, heading_angle: float):
+        """
+        Draw the connections between lidar-scan detected points (creates a polygon).
+
+        TODO: If works, use this to derive cloud points in the halves-racer rather than compute twice.
+        """
+        vertices = []
+        for index, lidar_range in enumerate(ranges):
+            laser_beam_angle = (index * LIDAR_ANGLE_INCREMENT) + LIDAR_MINIMUM_ANGLE
+            rotated_angle = laser_beam_angle + heading_angle
+            vertex_x = lidar_range * math.cos(rotated_angle) + position_x
+            vertex_y = lidar_range * math.sin(rotated_angle) + position_y
+            vertices.append((vertex_x, vertex_y))
+
+        marker.mark_line_strips(vertices, channel=MarkerPublisherChannel.FOURTH)
 
     def prepare_drive_command(self):
         """

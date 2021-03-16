@@ -5,15 +5,23 @@ from enum import Enum
 from typing import Iterable
 from collections import namedtuple
 from visualization_msgs.msg import Marker, MarkerArray
+from geometry_msgs.msg import Point
 from rospy import Publisher, Duration
 from .constants import FRAME_ID
 
 # Provide more verbose namespace for passing marker colours
 MarkerColour = namedtuple("PointMarkerColour", ["r", "g", "b"])
 
-# Define shape and action of a marker
-MARKER_TYPE = Marker.SPHERE
+# Markers are always added
 MARKER_ACTION = Marker.ADD
+
+
+class MarkerType(Enum):
+    """
+    ROS marker types required for visualising different types of data using the same object.
+    """
+    POINT = Marker.SPHERE
+    LINE = Marker.LINE_STRIP
 
 
 class MarkerPublisherChannel(Enum):
@@ -23,6 +31,7 @@ class MarkerPublisherChannel(Enum):
     FIRST = Publisher("/visualisation_marker_01", Marker, queue_size=100)
     SECOND = Publisher("/visualisation_marker_02", Marker, queue_size=100)
     THIRD = Publisher("/visualisation_marker_03", Marker, queue_size=100)
+    FOURTH = Publisher("/visualisation_marker_04", Marker, queue_size=100)
 
 
 class MarkerArrayPublisherChannel(Enum):
@@ -40,10 +49,18 @@ DEFAULT_COLOUR = MarkerColour(1.0, 0.0, 0.0)
 DEFAULT_LIFETIME = 0.1
 DEFAULT_MARKER_CHANNEL = MarkerPublisherChannel.FIRST
 DEFAULT_MARKER_ARRAY_CHANNEL = MarkerArrayPublisherChannel.FIRST
+DEFAULT_MARKER_TYPE = MarkerType.POINT
 
 
-def _create_marker(position_x: float, position_y: float, marker_id: int = 0, colour: MarkerColour = DEFAULT_COLOUR,
-                   scale: float = DEFAULT_SCALE, duration: float = DEFAULT_LIFETIME) -> Marker:
+def _create_marker(
+        position_x: float = 0,
+        position_y: float = 0,
+        marker_id: int = 0,
+        colour: MarkerColour = DEFAULT_COLOUR,
+        scale: float = DEFAULT_SCALE,
+        duration: float = DEFAULT_LIFETIME,
+        marker_type: MarkerType = DEFAULT_MARKER_TYPE
+) -> Marker:
     """
     Generate a marker using passed parameters.
 
@@ -52,7 +69,7 @@ def _create_marker(position_x: float, position_y: float, marker_id: int = 0, col
     marker = Marker()
     marker.id = marker_id
     marker.header.frame_id = FRAME_ID
-    marker.type = MARKER_TYPE
+    marker.type = marker_type.value
     marker.action = MARKER_ACTION
 
     # Marker is a sphere so scale is uniform within each direction
@@ -67,10 +84,11 @@ def _create_marker(position_x: float, position_y: float, marker_id: int = 0, col
     marker.color.a = 1.0
 
     # Position should be passed by the caller
-    marker.pose.position.x = position_x
-    marker.pose.position.y = position_y
-    marker.pose.position.z = 0.0
-    marker.pose.orientation.w = 1.0
+    if marker_type == MarkerType.POINT:
+        marker.pose.position.x = position_x
+        marker.pose.position.y = position_y
+        marker.pose.position.z = 0.0
+        marker.pose.orientation.w = 1.0
 
     # When should the marker disappear
     marker.lifetime = Duration(duration)
@@ -111,3 +129,22 @@ def mark_array(positions: Iterable, colour: MarkerColour = DEFAULT_COLOUR, scale
         marker_array.markers.append(marker)
 
     channel.value.publish(marker_array)
+
+
+def mark_line_strips(positions: Iterable, colour: MarkerColour = DEFAULT_COLOUR, scale: float = DEFAULT_SCALE,
+                     duration: float = DEFAULT_LIFETIME, channel: MarkerPublisherChannel = DEFAULT_MARKER_CHANNEL):
+    """
+    Spawn line strips at the given locations.
+    """
+    lines = _create_marker(
+        colour=colour,
+        scale=scale,
+        duration=duration,
+    )
+
+    for index, (position_x, position_y) in enumerate(positions):
+        point = Point()
+        point.x, point.y, point.z = position_x, position_y, 0
+        lines.append(point)
+
+    channel.value.publish(lines)
