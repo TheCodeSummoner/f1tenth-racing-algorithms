@@ -2,11 +2,9 @@
 Modified Follow The Gap with MPC.
 """
 import math
-from typing import Tuple, List, Iterable
+from typing import Tuple, List
 import dataclasses
 import numpy as np
-from laser_geometry.laser_geometry import LaserProjection
-from sensor_msgs import point_cloud2
 from .constants import HORIZON_LENGTH, TIME_STEP
 from ..common import Racer, marker, PointFollowerMPC
 from ..common.marker import MarkerColour, MarkerArrayPublisherChannel, MarkerPublisherChannel
@@ -49,23 +47,31 @@ class HalvesRacer(Racer):
         """
         lidar_data = self._lidar_data
         ranges = lidar_data.ranges
-        self._visualise_current_lidar_scan(ranges, position_x, position_y, heading_angle)
+        cartesian_points = self.lidar_to_cartesian(
+            ranges=ranges,
+            position_x=position_x,
+            position_y=position_y,
+            heading_angle=heading_angle
+        )
 
-        # Cloud points will not be placed correctly with respect to the car's position and heading, but we only care
-        # about the distances between each pair of points, and these will be true even without positional corrections
-        laser_projection = LaserProjection().projectLaser(lidar_data)
-        cloud_points = list(point_cloud2.read_points(laser_projection, skip_nans=True, field_names=("x", "y")))
+        # Visualise cartesian points cloud as a polygon
+        marker.mark_line_strips(
+            positions=cartesian_points,
+            channel=MarkerPublisherChannel.FOURTH,
+            colour=MarkerColour(0.4, 1, 1),
+            scale=0.1
+        )
 
         # Build a list of relevant Point instances for each half
         left_points = list()
         right_points = list()
         for i in range(MAX_INDEX):
             if LEFT_DIVERGENCE_INDEX >= i >= RIGHT_DIVERGENCE_INDEX:
-                cloud_point = cloud_points[i]
+                cartesian_point = cartesian_points[i]
                 if i > MID_INDEX:
-                    left_points.append(self.Point(i, ranges[i], cloud_point[0], cloud_point[1]))
+                    left_points.append(self.Point(i, ranges[i], cartesian_point.x, cartesian_point.y))
                 else:
-                    right_points.append(self.Point(i, ranges[i], cloud_point[0], cloud_point[1]))
+                    right_points.append(self.Point(i, ranges[i], cartesian_point.x, cartesian_point.y))
 
         # Avoid driving into points around the closest point
         self._mark_safety_radius(left_points)
@@ -74,6 +80,9 @@ class HalvesRacer(Racer):
         # Find the longest non-zero sequences in each half
         left_point_space = self._find_longest_non_zero_sequence(left_points)
         right_point_space = self._find_longest_non_zero_sequence(right_points)
+
+        # TODO: Simplify below operation(s) - don't need to derive target point via equations again, already computed
+        #   correct positions as cartesian_points
 
         # Fix the range and the index if either of the spaces is empty (no valid drive points detected)
         left_target_index, left_target_range = self._get_target_index_and_range(left_point_space,
@@ -184,28 +193,6 @@ class HalvesRacer(Racer):
             target_index = farthest_point.index
 
         return target_index, target_range
-
-    @staticmethod
-    def _visualise_current_lidar_scan(ranges: Iterable, position_x: float, position_y: float, heading_angle: float):
-        """
-        Draw the connections between lidar-scan detected points (creates a polygon).
-
-        TODO: If works, use this to derive cloud points in the halves-racer rather than compute twice.
-        """
-        vertices = []
-        for index, lidar_range in enumerate(ranges):
-            laser_beam_angle = (index * LIDAR_ANGLE_INCREMENT) + LIDAR_MINIMUM_ANGLE
-            rotated_angle = laser_beam_angle + heading_angle
-            vertex_x = lidar_range * math.cos(rotated_angle) + position_x
-            vertex_y = lidar_range * math.sin(rotated_angle) + position_y
-            vertices.append((vertex_x, vertex_y))
-
-        marker.mark_line_strips(
-            positions=vertices,
-            channel=MarkerPublisherChannel.FOURTH,
-            colour=MarkerColour(0.4, 1, 1),
-            scale=0.1
-        )
 
     def prepare_drive_command(self):
         """
