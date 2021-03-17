@@ -140,11 +140,12 @@ def mark_line_strips(positions: Iterable, colour: MarkerColour = DEFAULT_COLOUR,
         colour=colour,
         scale=scale,
         duration=duration,
+        marker_type=MarkerType.LINE
     )
 
     for index, (position_x, position_y) in enumerate(positions):
         point = Point()
         point.x, point.y, point.z = position_x, position_y, 0
-        lines.append(point)
+        lines.points.append(point)
 
     channel.value.publish(lines)

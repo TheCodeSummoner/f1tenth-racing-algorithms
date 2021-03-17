@@ -200,7 +200,12 @@ class HalvesRacer(Racer):
             vertex_y = lidar_range * math.sin(rotated_angle) + position_y
             vertices.append((vertex_x, vertex_y))
 
-        marker.mark_line_strips(vertices, channel=MarkerPublisherChannel.FOURTH)
+        marker.mark_line_strips(
+            positions=vertices,
+            channel=MarkerPublisherChannel.FOURTH,
+            colour=MarkerColour(0.4, 1, 1),
+            scale=0.1
+        )
 
     def prepare_drive_command(self):
         """
