@@ -74,8 +74,9 @@ def _create_marker(
 
     # Marker is a sphere so scale is uniform within each direction
     marker.scale.x = scale
-    marker.scale.y = scale
-    marker.scale.z = scale
+    if marker_type == MarkerType.POINT:
+        marker.scale.y = scale
+        marker.scale.z = scale
 
     # Colour should be passed by the caller
     marker.color.r = colour.r
@@ -84,11 +85,11 @@ def _create_marker(
     marker.color.a = 1.0
 
     # Position should be passed by the caller
+    marker.pose.orientation.w = 1.0
     if marker_type == MarkerType.POINT:
         marker.pose.position.x = position_x
         marker.pose.position.y = position_y
         marker.pose.position.z = 0.0
-        marker.pose.orientation.w = 1.0
 
     # When should the marker disappear
     marker.lifetime = Duration(duration)
