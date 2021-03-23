@@ -6,12 +6,12 @@ Relevant algorithms should derive from the base class defined below.
 import math
 from typing import Optional, Tuple, Iterable, List
 from abc import ABC, abstractmethod
-from collections import namedtuple
 import rospy
 from rospy import Subscriber, Publisher, Time
 from sensor_msgs.msg import LaserScan
 from ackermann_msgs.msg import AckermannDriveStamped
 from nav_msgs.msg import Odometry
+from .point import CartesianPoint
 from .constants import LASER_SCAN_TOPIC, DRIVE_TOPIC, ODOMETRY_TOPIC
 from .constants import LR, WHEELBASE_LENGTH
 from .constants import LIDAR_MINIMUM_ANGLE, LIDAR_ANGLE_INCREMENT
@@ -33,9 +33,6 @@ class Racer(ABC):
     where `racer` is an instance of the deriving class. This is a blocking call. Remember that some rospy node must be
     initialised before the default `start` method functionality will work.
     """
-
-    # Simple named tuple to better describe (x, y) tuples representing cartesian coordinates
-    CartesianPoint = namedtuple("CartesianPoint", ["x", "y"])
 
     def __init__(self):
         self._lidar_topic = Subscriber(LASER_SCAN_TOPIC, LaserScan, self.on_lidar_update, queue_size=1)
@@ -102,7 +99,7 @@ class Racer(ABC):
         self._trigger_drive()
 
     def predict_trajectory(self, velocity: float, steering_angle: float,
-                           steps_count: int = 10, time_step: float = 0.025) -> Tuple[Tuple[float, float], ...]:
+                           steps_count: int = 10, time_step: float = 0.025) -> List[CartesianPoint]:
         """
         Generate predicted trajectory points.
         """
@@ -120,9 +117,9 @@ class Racer(ABC):
             predicted_position_y = position_y + time_delta * velocity * math.sin(predicted_heading_angle + slip_factor)
             predicted_heading_angle = heading_angle + time_delta * velocity * math.tan(steering_angle) \
                 * math.cos(slip_factor) / WHEELBASE_LENGTH
-            predicted_positions.append((predicted_position_x, predicted_position_y))
+            predicted_positions.append(CartesianPoint(predicted_position_x, predicted_position_y))
 
-        return tuple(predicted_positions)
+        return predicted_positions
 
     @staticmethod
     def lidar_to_cartesian(ranges: Iterable, position_x: float, position_y: float, heading_angle: float) \
@@ -136,7 +133,7 @@ class Racer(ABC):
             rotated_angle = laser_beam_angle + heading_angle
             x_coordinate = lidar_range * math.cos(rotated_angle) + position_x
             y_coordinate = lidar_range * math.sin(rotated_angle) + position_y
-            points.append(Racer.CartesianPoint(x_coordinate, y_coordinate))
+            points.append(CartesianPoint(x_coordinate, y_coordinate))
 
         return points
 

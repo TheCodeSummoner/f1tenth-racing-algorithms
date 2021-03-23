@@ -214,7 +214,7 @@ class HalvesRacer(Racer):
         # Compute inputs and visualise predicted trajectory
         velocity, steering_angle = self._mpc.make_step(state)
         marker.mark_array(
-            self.predict_trajectory(velocity, steering_angle, steps_count=HORIZON_LENGTH, time_step=TIME_STEP),
+            self._mpc.get_prediction_coordinates(),
             colour=MarkerColour(0, 1, 1),
             scale=0.12,
             channel=MarkerArrayPublisherChannel.SECOND

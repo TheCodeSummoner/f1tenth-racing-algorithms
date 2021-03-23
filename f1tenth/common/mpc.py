@@ -3,7 +3,7 @@ Model Predictive Control base class module.
 
 Relevant algorithms should derive from the base class defined below.
 """
-from typing import Optional
+from typing import Optional, List
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 import matplotlib
@@ -14,6 +14,7 @@ from do_mpc.controller import MPC
 from do_mpc.graphics import Graphics
 import numpy as np
 from .constants import LR, WHEELBASE_LENGTH
+from .point import CartesianPoint
 
 
 @dataclass
@@ -183,7 +184,8 @@ class ModelPredictiveControl(ABC):
         self._controller.set_param(
             n_horizon=self._horizon_length,
             t_step=self._time_step,
-            nlpsol_opts=nlpsol_opts
+            nlpsol_opts=nlpsol_opts,
+            store_full_solution=True,
         )
 
         # lterm -> lagrange term (stage cost); mterm -> meyer term (terminal cost)
@@ -236,6 +238,25 @@ class ModelPredictiveControl(ABC):
                                "to use the controller")
 
         return self._controller.make_step(state)
+
+    def get_prediction_coordinates(self) -> List[CartesianPoint]:
+        """
+        Retrieve a collection of predicted coordinates within the horizon (predicted trajectory).
+        """
+        points = []
+
+        # Fetch predictions data from MPC controller memory
+        predicted_x = self._controller.data.prediction(("_x", "position_x", 0)).flatten()
+        predicted_y = self._controller.data.prediction(("_x", "position_y", 0)).flatten()
+        data_length = len(predicted_x)
+
+        assert data_length == len(predicted_x) == len(predicted_y)
+
+        # Pass retrieved data to a custom data structure
+        for i in range(data_length):
+            points.append(CartesianPoint(predicted_x[i], predicted_y[i]))
+
+        return points
 
     def plot(self):
         """

@@ -2,13 +2,12 @@
 Waypoints-based trajectory MPC.
 """
 import csv
-from typing import Tuple
-from collections import namedtuple
+from typing import List
 import numpy as np
-from .constants import HORIZON_LENGTH, TIME_STEP
 from .constants import WAYPOINTS_FILE_PATH, NEXT_WAYPOINT_THRESHOLD
 from ..common import Racer, PointFollowerMPC, marker
 from ..common.marker import MarkerColour, MarkerArrayPublisherChannel
+from ..common.point import CartesianPoint
 
 
 class WaypointsFollowerRacer(Racer):
@@ -16,15 +15,12 @@ class WaypointsFollowerRacer(Racer):
     Waypoints racer drives by following some chosen point within its reference trajectory.
     """
 
-    # Simple named tuple to better describe (x, y) tuples representing reference trajectory waypoints
-    Waypoint = namedtuple("Waypoint", ["x", "y"])
-
     def __init__(self, mpc: PointFollowerMPC, waypoints_file_path: str = WAYPOINTS_FILE_PATH):
         super().__init__()
         self._mpc = mpc
 
         # Need iteration over waypoints to adjust the target positions when needed
-        self._waypoints: Tuple[WaypointsFollowerRacer.Waypoint, ...]
+        self._waypoints: List[CartesianPoint] = []
         self._read_waypoints(waypoints_file_path)
         self._waypoints_iterator = 0
 
@@ -32,19 +28,22 @@ class WaypointsFollowerRacer(Racer):
         self._mpc.target_x, self._mpc.target_y = self._waypoints[self._waypoints_iterator]
 
         # Mark the reference trajectory for better visibility
-        marker.mark_array(self._waypoints, colour=MarkerColour(0, 1, 0), scale=0.05, duration=0)
+        marker.mark_array(
+            self._waypoints,
+            colour=MarkerColour(0, 1, 0),
+            scale=0.05,
+            duration=0,
+            channel=MarkerArrayPublisherChannel.FIRST
+        )
 
     def _read_waypoints(self, file_path: str):
         """
         Cast data points from the csv file to a collection of relevant named tuple instances.
         """
-        waypoints = []
         with open(file_path) as waypoints_fd:
             reader = csv.reader(waypoints_fd, delimiter=",")
             for position_x, position_y in reader:
-                waypoints.append(self.Waypoint(float(position_x.strip()), float(position_y.strip())))
-
-        self._waypoints = tuple(waypoints)
+                self._waypoints.append(CartesianPoint(float(position_x.strip()), float(position_y.strip())))
 
     def _adjust_target_position(self, position_x: float, position_y: float):
         """
@@ -75,7 +74,7 @@ class WaypointsFollowerRacer(Racer):
         # Compute inputs and visualise predicted trajectory
         velocity, steering_angle = self._mpc.make_step(state)
         marker.mark_array(
-            self.predict_trajectory(velocity, steering_angle, steps_count=HORIZON_LENGTH, time_step=TIME_STEP),
+            self._mpc.get_prediction_coordinates(),
             colour=MarkerColour(0, 1, 1),
             scale=0.12,
             channel=MarkerArrayPublisherChannel.SECOND
