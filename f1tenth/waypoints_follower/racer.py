@@ -41,8 +41,8 @@ class WaypointsFollowerRacer(Racer):
         waypoints = []
         with open(file_path) as waypoints_fd:
             reader = csv.reader(waypoints_fd, delimiter=",")
-            for x, y in reader:
-                waypoints.append(self.Waypoint(float(x.strip()), float(y.strip())))
+            for position_x, position_y in reader:
+                waypoints.append(self.Waypoint(float(position_x.strip()), float(position_y.strip())))
 
         self._waypoints = tuple(waypoints)
 

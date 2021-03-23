@@ -12,9 +12,6 @@ class FollowTheGapRacer(Racer):
     Follow the gap racer drives by steering towards the largest gap in front of it.
     """
 
-    def __init__(self):
-        super().__init__()
-
     def prepare_drive_command(self):
         """
         Simple follow-the-gap control.

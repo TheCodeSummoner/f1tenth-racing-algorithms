@@ -209,21 +209,21 @@ class ModelPredictiveControl(ABC):
         matplotlib.rcParams["axes.grid"] = True
 
         # Create the figure and the axis
-        fig, ax = plt.subplots(3, sharex="all", figsize=(16, 9))
-        fig.align_ylabels()
+        figure, axis = plt.subplots(3, sharex="all", figsize=(16, 9))
+        figure.align_ylabels()
 
         # Draw relevant state and inputs
-        self._plotter.add_line(var_type="_x", var_name="position_x", axis=ax[0], color="green")
-        self._plotter.add_line(var_type="_x", var_name="position_y", axis=ax[0], color="blue")
-        self._plotter.add_line(var_type="_x", var_name="heading_angle", axis=ax[1], color="red")
-        self._plotter.add_line(var_type="_u", var_name="steering_angle", axis=ax[1], color="green")
-        self._plotter.add_line(var_type="_u", var_name="velocity", axis=ax[2], color="red")
+        self._plotter.add_line(var_type="_x", var_name="position_x", axis=axis[0], color="green")
+        self._plotter.add_line(var_type="_x", var_name="position_y", axis=axis[0], color="blue")
+        self._plotter.add_line(var_type="_x", var_name="heading_angle", axis=axis[1], color="red")
+        self._plotter.add_line(var_type="_u", var_name="steering_angle", axis=axis[1], color="green")
+        self._plotter.add_line(var_type="_u", var_name="velocity", axis=axis[2], color="red")
 
         # Set X and Y labels
-        ax[0].set_ylabel("Position")
-        ax[1].set_ylabel("Angles")
-        ax[2].set_ylabel("Velocity")
-        ax[2].set_xlabel("Time")
+        axis[0].set_ylabel("Position")
+        axis[1].set_ylabel("Angles")
+        axis[2].set_ylabel("Velocity")
+        axis[2].set_xlabel("Time")
 
     def make_step(self, state: np.array) -> np.array:
         """
@@ -279,18 +279,30 @@ class PointFollowerMPC(ModelPredictiveControl):
 
     @property
     def target_x(self) -> float:
+        """
+        Get target reference point position (x coordinate).
+        """
         return self._tx
 
     @target_x.setter
     def target_x(self, value: float):
+        """
+        Set target reference point position.
+        """
         self._tx = value
 
     @property
     def target_y(self) -> float:
+        """
+        Get target reference point position (y coordinate).
+        """
         return self._ty
 
     @target_y.setter
     def target_y(self, value: float):
+        """
+        Set target reference point position (y coordinate).
+        """
         self._ty = value
 
     def _prepare_target_position_template(self, _):
