@@ -20,6 +20,7 @@ class MarkerType(Enum):
     """
     ROS marker types required for visualising different types of data using the same object.
     """
+
     POINT = Marker.SPHERE
     LINE = Marker.LINE_STRIP
 
@@ -28,6 +29,7 @@ class MarkerPublisherChannel(Enum):
     """
     Available publisher channels for marker messages.
     """
+
     FIRST = Publisher("/visualisation_marker_01", Marker, queue_size=100)
     SECOND = Publisher("/visualisation_marker_02", Marker, queue_size=100)
     THIRD = Publisher("/visualisation_marker_03", Marker, queue_size=100)
@@ -38,6 +40,7 @@ class MarkerArrayPublisherChannel(Enum):
     """
     Available publisher channels for marker array messages.
     """
+
     FIRST = Publisher("/visualisation_marker_array_01", MarkerArray, queue_size=100)
     SECOND = Publisher("/visualisation_marker_array_02", MarkerArray, queue_size=100)
     THIRD = Publisher("/visualisation_marker_array_03", MarkerArray, queue_size=100)

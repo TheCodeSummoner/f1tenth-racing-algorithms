@@ -22,6 +22,7 @@ class ControlConstraints:
     """
     Parametrisable collection of control constraints.
     """
+
     min_velocity: float = 0
     max_velocity: float = 7
     min_steering_angle: float = -0.4189
@@ -91,7 +92,7 @@ class ModelPredictiveControl(ABC):
     @abstractmethod
     def stage_cost(self):
         """
-        This is the cost that will get added on each iteration.
+        Cost that will get added on each iteration.
 
         Also known as the Lagrange term.
         """
@@ -100,7 +101,7 @@ class ModelPredictiveControl(ABC):
     @abstractmethod
     def terminal_cost(self):
         """
-        This is the cost that will get added once, at the end of the iterations.
+        Cost that will get added once, at the end of the iterations.
 
         Also known as the Meyer term.
         """
@@ -128,7 +129,7 @@ class ModelPredictiveControl(ABC):
 
     def configure_model(self):
         """
-        Create state and input variables, as well as describe the vehicle's physical properties by using approximative
+        Create state and input variables, as well as describe the vehicle's physical properties by using approximative \
         motion's equations.
         """
         self._model = Model("continuous")
@@ -199,7 +200,7 @@ class ModelPredictiveControl(ABC):
 
     def configure_graphics(self):
         """
-        Setup matplotlib-based plotter and connect relevant data points to it.
+        Matplotlib-based plotter and connect relevant data points to it.
 
         Additional styling is added for more pleasing visuals and can be extended for custom plotting.
         """
@@ -328,7 +329,7 @@ class PointFollowerMPC(ModelPredictiveControl):
 
     def _prepare_target_position_template(self, _):
         """
-        Following the docs of do_mpc, an approach to populate the target position variables with values, at any given
+        Following the docs of do_mpc, an approach to populate the target position variables with values, at any given \
         point.
         """
         template = self._controller.get_tvp_template()
@@ -357,7 +358,7 @@ class PointFollowerMPC(ModelPredictiveControl):
 
     def configure_model(self):
         """
-        Additionally to the base class variables, two time varying parameters must be specified, to allow changing
+        Additionally to the base class variables, two time varying parameters must be specified, to allow changing \
         the target position with time.
         """
         super().configure_model()

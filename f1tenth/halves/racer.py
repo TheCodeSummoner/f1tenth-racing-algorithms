@@ -2,10 +2,9 @@
 Modified Follow The Gap with MPC.
 """
 import math
-from typing import Tuple, List
+from typing import List
 import dataclasses
 import numpy as np
-from .constants import HORIZON_LENGTH, TIME_STEP
 from ..common import Racer, marker, PointFollowerMPC
 from ..common.marker import MarkerColour, MarkerArrayPublisherChannel, MarkerPublisherChannel
 from .constants import MAX_INDEX, MID_INDEX, LEFT_DIVERGENCE_INDEX, RIGHT_DIVERGENCE_INDEX
@@ -77,24 +76,24 @@ class HalvesRacer(Racer):
         self._mark_safety_radius(left_points)
         self._mark_safety_radius(right_points)
 
-        # Find the longest non-zero sequences in each half
-        left_point_space = self._find_longest_non_zero_sequence(left_points)
-        right_point_space = self._find_longest_non_zero_sequence(right_points)
-
         # TODO: Simplify below operation(s) - don't need to derive target point via equations again, already computed
         #   correct positions as cartesian_points
 
-        # Fix the range and the index if either of the spaces is empty (no valid drive points detected)
-        left_target_index, left_target_range = self._get_target_index_and_range(left_point_space,
-                                                                                DEFAULT_LEFT_TARGET_INDEX)
-        right_target_index, right_target_range = self._get_target_index_and_range(right_point_space,
-                                                                                  DEFAULT_RIGHT_TARGET_INDEX)
-
         # Find the coordinates of FTG result for each half
-        left_x, left_y = self._get_target_point(left_target_index, left_target_range,
-                                                position_x, position_y, heading_angle)
-        right_x, right_y = self._get_target_point(right_target_index, right_target_range,
-                                                  position_x, position_y, heading_angle)
+        left_x, left_y = self._get_target_point(
+            points=self._find_longest_non_zero_sequence(left_points),
+            default_index=DEFAULT_LEFT_TARGET_INDEX,
+            position_x=position_x,
+            position_y=position_y,
+            heading_angle=heading_angle
+        )
+        right_x, right_y = self._get_target_point(
+            points=self._find_longest_non_zero_sequence(right_points),
+            default_index=DEFAULT_RIGHT_TARGET_INDEX,
+            position_x=position_x,
+            position_y=position_y,
+            heading_angle=heading_angle
+        )
 
         # Visualise resulting coordinates and find the final drive-to-point
         marker.mark(left_x, left_y, colour=MarkerColour(0, 1, 0), channel=MarkerPublisherChannel.SECOND)
@@ -135,10 +134,10 @@ class HalvesRacer(Racer):
         final_right_index = 0
         is_sequence_started = False
 
-        for i, p in enumerate(points):
+        for i, point in enumerate(points):
 
             # Lengthen the sub-sequence or start a new one if non-zero number found
-            if p.range != 0:
+            if point.range != 0:
                 if is_sequence_started:
                     current_right_index += 1
                 else:
@@ -166,24 +165,12 @@ class HalvesRacer(Racer):
         return points[final_left_index:final_right_index]
 
     @staticmethod
-    def _get_target_point(target_index: int, target_range: float,
+    def _get_target_point(points: List[Point], default_index: int,
                           position_x: float, position_y: float, heading_angle: float):
         """
-        Compute the target point given the current car's state, and the pre-fetched lidar index and range.
+        Compute the target reference point.
         """
-        laser_beam_angle = (target_index * LIDAR_ANGLE_INCREMENT) + LIDAR_MINIMUM_ANGLE
-        rotated_angle = laser_beam_angle + heading_angle
-        target_x = target_range * math.cos(rotated_angle) + position_x
-        target_y = target_range * math.sin(rotated_angle) + position_y
-        return target_x, target_y
-
-    @staticmethod
-    def _get_target_index_and_range(points: List[Point], default_index: int) -> Tuple[int, float]:
-        """
-        Find target point by selecting either the default values, or the farthest point in current sample.
-
-        Lidar index and range are returned to pass them to the next method.
-        """
+        # Find target point by selecting either the default values, or the farthest point in current sample
         if not points:
             target_range = DEFAULT_RANGE
             target_index = default_index
@@ -192,11 +179,17 @@ class HalvesRacer(Racer):
             target_range = farthest_point.range
             target_index = farthest_point.index
 
-        return target_index, target_range
+        # Lidar index and range are passed for coordinates' calculation
+        laser_beam_angle = (target_index * LIDAR_ANGLE_INCREMENT) + LIDAR_MINIMUM_ANGLE
+        rotated_angle = laser_beam_angle + heading_angle
+        target_x = target_range * math.cos(rotated_angle) + position_x
+        target_y = target_range * math.sin(rotated_angle) + position_y
+
+        return target_x, target_y
 
     def prepare_drive_command(self):
         """
-        Modified Follow The Gap with MPC.
+        Follow The Gap with MPC based on running FTG for left and right hand side of the vehicle separately.
 
         Each iteration the steering angle and the velocity must be computed.
         """

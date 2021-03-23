@@ -14,7 +14,7 @@ class FollowTheGapRacer(Racer):
 
     def prepare_drive_command(self):
         """
-        Simple follow-the-gap control.
+        Follow-the-gap control (used as a reference algorithm when implementing the MPC ones).
 
         Each iteration the steering angle and the velocity must be computed. Additionally, predicted trajectory
         is plotted for more pleasing visuals and understanding of the steering angles.

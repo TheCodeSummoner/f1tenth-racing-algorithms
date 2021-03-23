@@ -56,8 +56,6 @@ class WaypointsFollowerRacer(Racer):
 
     def prepare_drive_command(self):
         """
-        Simple follow-the-gap control.
-
         Each iteration the steering angle and the velocity must be computed.
         """
         # Retrieve the vehicle's state
