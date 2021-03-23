@@ -138,7 +138,7 @@ class HalvesRacer(Racer):
         for i, p in enumerate(points):
 
             # Lengthen the sub-sequence or start a new one if non-zero number found
-            if p != 0:
+            if p.range != 0:
                 if is_sequence_started:
                     current_right_index += 1
                 else:
