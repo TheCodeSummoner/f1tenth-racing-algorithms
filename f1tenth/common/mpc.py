@@ -59,11 +59,12 @@ class ModelPredictiveControl(ABC):
     """
 
     def __init__(self, horizon_length: int = 5, time_step: float = 0.1, suppress_outputs: bool = True,
-                 plot_results: bool = True):
+                 plot_results: bool = True, control_constraints: ControlConstraints = ControlConstraints()):
         self._horizon_length = horizon_length
         self._time_step = time_step
         self._suppress_outputs = suppress_outputs
         self._plot_results = plot_results
+        self._control_constraints = control_constraints
 
         # Model, the controller, and plotting must be prepared via the `setup` method call
         self._model: Optional[Model] = None
@@ -189,10 +190,10 @@ class ModelPredictiveControl(ABC):
         self._controller.set_objective(lterm=self.stage_cost, mterm=self.terminal_cost)
 
         # Control bounds stored in the configurable dataclass instance
-        self._controller.bounds["lower", "_u", "velocity"] = ControlConstraints.min_velocity
-        self._controller.bounds["upper", "_u", "velocity"] = ControlConstraints.max_velocity
-        self._controller.bounds["lower", "_u", "steering_angle"] = ControlConstraints.min_steering_angle
-        self._controller.bounds["upper", "_u", "steering_angle"] = ControlConstraints.max_steering_angle
+        self._controller.bounds["lower", "_u", "velocity"] = self._control_constraints.min_velocity
+        self._controller.bounds["upper", "_u", "velocity"] = self._control_constraints.max_velocity
+        self._controller.bounds["lower", "_u", "steering_angle"] = self._control_constraints.min_steering_angle
+        self._controller.bounds["upper", "_u", "steering_angle"] = self._control_constraints.max_steering_angle
 
     def configure_graphics(self):
         """
