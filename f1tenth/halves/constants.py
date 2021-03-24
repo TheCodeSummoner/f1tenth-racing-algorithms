@@ -2,7 +2,7 @@
 Algorithm-relevant and tuning constants.
 """
 # Define parameters here for easier configurability
-HORIZON_LENGTH = 8
+HORIZON_LENGTH = 6
 TIME_STEP = 0.027
 
 # Limits for deciding left and right halves (counter-clockwise)
@@ -32,5 +32,5 @@ FTG_AREA_RADIUS_SQUARED = 16
 LIDAR_MINIMUM_ANGLE = -3.1415927410125732
 LIDAR_ANGLE_INCREMENT = 0.005823155865073204
 
-# Any points with this range will be avoided at all cost
-FTG_IGNORE_VALUE = 0
+# Need to store value for computing most likely position (for better MPC predictions)
+POSITION_PREDICTION_TIME = 0.024

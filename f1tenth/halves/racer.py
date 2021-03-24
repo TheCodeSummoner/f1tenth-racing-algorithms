@@ -10,7 +10,7 @@ from ..common.marker import MarkerColour, MarkerArrayPublisherChannel, MarkerPub
 from .constants import MID_INDEX, LEFT_DIVERGENCE_INDEX, RIGHT_DIVERGENCE_INDEX
 from .constants import FTG_DISTANCE_LIMIT, FTG_AREA_RADIUS_SQUARED, FTG_IGNORE_VALUE
 from .constants import DEFAULT_RANGE, DEFAULT_RIGHT_TARGET_INDEX, DEFAULT_LEFT_TARGET_INDEX
-from .constants import LIDAR_MINIMUM_ANGLE, LIDAR_ANGLE_INCREMENT
+from .constants import LIDAR_MINIMUM_ANGLE, LIDAR_ANGLE_INCREMENT, POSITION_PREDICTION_TIME
 
 
 class HalvesRacer(Racer):
@@ -39,6 +39,8 @@ class HalvesRacer(Racer):
     def __init__(self, mpc: PointFollowerMPC):
         super().__init__()
         self._mpc = mpc
+        self._velocity = 0
+        self._steering_angle = 0
 
     def _adjust_target_position(self, position_x: float, position_y: float, heading_angle: float):
         """
@@ -203,10 +205,8 @@ class HalvesRacer(Racer):
 
         Each iteration the steering angle and the velocity must be computed.
         """
-        # Retrieve the vehicle's state
         position_x, position_y = self._retrieve_position()
         heading_angle = self._retrieve_heading_angle()
-        state = np.array([position_x, position_y, heading_angle])
 
         # Change target waypoints if needed
         self._adjust_target_position(position_x, position_y, heading_angle)
@@ -214,8 +214,24 @@ class HalvesRacer(Racer):
         # Mark where the vehicle is going
         marker.mark(self._mpc.target_x, self._mpc.target_y)
 
+        # Predict the car's position in which it's likely to be after the computations are done
+        positions, heading_angles = self.predict_trajectory(
+            velocity=self._velocity,
+            steering_angle=self._steering_angle,
+            steps_count=1,
+            time_step=POSITION_PREDICTION_TIME,
+            position_x=position_x,
+            position_y=position_y,
+            heading_angle=heading_angle
+        )
+        position_x, position_y = positions[0]
+        heading_angle = heading_angles[0]
+
+        # Define the state used for MPC
+        state = np.array([position_x, position_y, heading_angle])
+
         # Compute inputs and visualise predicted trajectory
-        velocity, steering_angle = self._mpc.make_step(state)
+        self._velocity, self._steering_angle = self._mpc.make_step(state)
         marker.mark_array(
             self._mpc.get_prediction_coordinates(),
             colour=MarkerColour(0, 1, 1),
@@ -224,5 +240,5 @@ class HalvesRacer(Racer):
         )
 
         # Finally, embed the inputs into the ackermann message
-        self._command.drive.steering_angle = steering_angle
-        self._command.drive.speed = velocity
+        self._command.drive.steering_angle = self._steering_angle
+        self._command.drive.speed = self._velocity

@@ -98,14 +98,16 @@ class Racer(ABC):
         self._odometry_data = data
         self._trigger_drive()
 
-    def predict_trajectory(self, velocity: float, steering_angle: float,
-                           steps_count: int = 10, time_step: float = 0.025) -> List[CartesianPoint]:
+    def predict_trajectory(self, velocity: float, steering_angle: float, steps_count: int = 10,
+                           time_step: float = 0.025, position_x: float = None, position_y: float = None,
+                           heading_angle: float = None) -> Tuple[List[CartesianPoint], List[float]]:
         """
         Generate predicted trajectory points.
         """
-        predicted_positions = list()
-        position_x, position_y = self._retrieve_position()
-        heading_angle = self._retrieve_heading_angle()
+        predicted_positions, predicted_heading_angles = list(), list()
+        if position_x is None or position_y is None:
+            position_x, position_y = self._retrieve_position()
+        heading_angle = self._retrieve_heading_angle() if heading_angle is None else heading_angle
 
         # Need this to compute the new heading angle after each step
         predicted_heading_angle = heading_angle
@@ -117,9 +119,10 @@ class Racer(ABC):
             predicted_position_y = position_y + time_delta * velocity * math.sin(predicted_heading_angle + slip_factor)
             predicted_heading_angle = heading_angle + time_delta * velocity * math.tan(steering_angle) \
                 * math.cos(slip_factor) / WHEELBASE_LENGTH
+            predicted_heading_angles.append(predicted_heading_angle)
             predicted_positions.append(CartesianPoint(predicted_position_x, predicted_position_y))
 
-        return predicted_positions
+        return predicted_positions, predicted_heading_angles
 
     @staticmethod
     def lidar_to_cartesian(ranges: Iterable, position_x: float, position_y: float, heading_angle: float,
