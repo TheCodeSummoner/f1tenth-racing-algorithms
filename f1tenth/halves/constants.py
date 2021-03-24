@@ -20,7 +20,6 @@ DEFAULT_RANGE = 1
 
 # Limit for recognising lidar point - any points further than the limit will be replaced with a different value
 FTG_DISTANCE_LIMIT = 9
-FTG_DISTANCE_LIMIT_REPLACEMENT = FTG_DISTANCE_LIMIT
 
 # Any points with this range will be avoided at all cost
 FTG_IGNORE_VALUE = 0

@@ -56,25 +56,12 @@ class HalvesRacer(Racer):
             starting_index=RIGHT_DIVERGENCE_INDEX
         )
 
-        # Visualise cartesian points cloud as a polygon
-        # TODO: Measure time impact
-        marker.mark_line_strips(
-            positions=cartesian_points,
-            channel=MarkerPublisherChannel.FOURTH,
-            colour=MarkerColour(0.4, 1, 1),
-            scale=0.1
-        )
-
         # Build a list of relevant Point instances for each half
         left_points, right_points = list(), list()
         for i in range(LEFT_DIVERGENCE_INDEX - RIGHT_DIVERGENCE_INDEX + 1):
             cartesian_point = cartesian_points[i]
             lidar_index = i + RIGHT_DIVERGENCE_INDEX
             lidar_range = ranges[i]
-
-            # Need to adjust the distances early to accommodate for computing safety radii later on
-            if lidar_range >= FTG_DISTANCE_LIMIT:
-                lidar_range = FTG_DISTANCE_LIMIT_REPLACEMENT
 
             if lidar_index > MID_INDEX:
                 left_points.append(self.Point(lidar_index, lidar_range, cartesian_point.x, cartesian_point.y))
@@ -125,7 +112,9 @@ class HalvesRacer(Racer):
         """
         closest_point = min(points, key=lambda p: p.range)
         for point in points:
-            if (point.cloud_point_x - closest_point.cloud_point_x) ** 2 \
+            if point.range >= FTG_DISTANCE_LIMIT:
+                point.range = FTG_IGNORE_VALUE
+            elif (point.cloud_point_x - closest_point.cloud_point_x) ** 2 \
                     + (point.cloud_point_y - closest_point.cloud_point_y) ** 2 \
                     <= FTG_AREA_RADIUS_SQUARED:
                 point.range = FTG_IGNORE_VALUE
