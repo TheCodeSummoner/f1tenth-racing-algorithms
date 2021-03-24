@@ -5,10 +5,10 @@ import math
 from typing import List
 import dataclasses
 import numpy as np
-from ..common import Racer, marker, PointFollowerMPC
+from ..common import Racer, marker, PointFollowerMPC, CartesianPoint
 from ..common.marker import MarkerColour, MarkerArrayPublisherChannel, MarkerPublisherChannel
-from .constants import MAX_INDEX, MID_INDEX, LEFT_DIVERGENCE_INDEX, RIGHT_DIVERGENCE_INDEX
-from .constants import FTG_DISTANCE_LIMIT, FTG_AREA_RADIUS_SQUARED
+from .constants import MID_INDEX, LEFT_DIVERGENCE_INDEX, RIGHT_DIVERGENCE_INDEX
+from .constants import FTG_DISTANCE_LIMIT, FTG_AREA_RADIUS_SQUARED, FTG_IGNORE_VALUE
 from .constants import DEFAULT_RANGE, DEFAULT_RIGHT_TARGET_INDEX, DEFAULT_LEFT_TARGET_INDEX
 from .constants import LIDAR_MINIMUM_ANGLE, LIDAR_ANGLE_INCREMENT
 
@@ -45,15 +45,17 @@ class HalvesRacer(Racer):
         Given current position and heading angle, find the target reference point.
         """
         lidar_data = self._lidar_data
-        ranges = lidar_data.ranges
+        ranges = lidar_data.ranges[RIGHT_DIVERGENCE_INDEX:(LEFT_DIVERGENCE_INDEX+1)]
         cartesian_points = self.lidar_to_cartesian(
             ranges=ranges,
             position_x=position_x,
             position_y=position_y,
-            heading_angle=heading_angle
+            heading_angle=heading_angle,
+            starting_index=RIGHT_DIVERGENCE_INDEX
         )
 
         # Visualise cartesian points cloud as a polygon
+        # TODO: Measure time impact
         marker.mark_line_strips(
             positions=cartesian_points,
             channel=MarkerPublisherChannel.FOURTH,
@@ -62,22 +64,34 @@ class HalvesRacer(Racer):
         )
 
         # Build a list of relevant Point instances for each half
-        left_points = list()
-        right_points = list()
-        for i in range(MAX_INDEX):
-            if LEFT_DIVERGENCE_INDEX >= i >= RIGHT_DIVERGENCE_INDEX:
-                cartesian_point = cartesian_points[i]
-                if i > MID_INDEX:
-                    left_points.append(self.Point(i, ranges[i], cartesian_point.x, cartesian_point.y))
-                else:
-                    right_points.append(self.Point(i, ranges[i], cartesian_point.x, cartesian_point.y))
+        left_points, right_points = list(), list()
+        for i in range(LEFT_DIVERGENCE_INDEX - RIGHT_DIVERGENCE_INDEX + 1):
+            cartesian_point = cartesian_points[i]
+            lidar_index = i + RIGHT_DIVERGENCE_INDEX
+            lidar_range = ranges[i]
+
+            # Need to adjust the distances early to accommodate for computing safety radii later on
+            if lidar_range >= FTG_DISTANCE_LIMIT:
+                lidar_range = FTG_DISTANCE_LIMIT_REPLACEMENT
+
+            if lidar_index > MID_INDEX:
+                left_points.append(self.Point(lidar_index, lidar_range, cartesian_point.x, cartesian_point.y))
+            else:
+                right_points.append(self.Point(lidar_index, lidar_range, cartesian_point.x, cartesian_point.y))
 
         # Avoid driving into points around the closest point
         self._mark_safety_radius(left_points)
         self._mark_safety_radius(right_points)
 
-        # TODO: Simplify below operation(s) - don't need to derive target point via equations again, already computed
-        #   correct positions as cartesian_points
+        # Visualise cartesian points cloud as a polygon
+        visualisation_points = [CartesianPoint(point.cloud_point_x, point.cloud_point_y) for point in left_points + right_points if point.range != 0]
+        if len(visualisation_points) >= 3:
+            marker.mark_line_strips(
+                positions=visualisation_points,
+                channel=MarkerPublisherChannel.FOURTH,
+                colour=MarkerColour(0.4, 1, 1),
+                scale=0.1
+            )
 
         # Find the coordinates of FTG result for each half
         left_x, left_y = self._get_target_point(
@@ -109,12 +123,10 @@ class HalvesRacer(Racer):
         """
         closest_point = min(points, key=lambda p: p.range)
         for point in points:
-            if point.range >= FTG_DISTANCE_LIMIT:
-                point.range = 0
-            elif (point.cloud_point_x - closest_point.cloud_point_x) ** 2 \
+            if (point.cloud_point_x - closest_point.cloud_point_x) ** 2 \
                     + (point.cloud_point_y - closest_point.cloud_point_y) ** 2 \
                     <= FTG_AREA_RADIUS_SQUARED:
-                point.range = 0
+                point.range = FTG_IGNORE_VALUE
 
     @staticmethod
     def _find_longest_non_zero_sequence(points: List[Point]) -> List[Point]:
@@ -174,16 +186,14 @@ class HalvesRacer(Racer):
         if not points:
             target_range = DEFAULT_RANGE
             target_index = default_index
+            laser_beam_angle = (target_index * LIDAR_ANGLE_INCREMENT) + LIDAR_MINIMUM_ANGLE
+            rotated_angle = laser_beam_angle + heading_angle
+            target_x = target_range * math.cos(rotated_angle) + position_x
+            target_y = target_range * math.sin(rotated_angle) + position_y
         else:
             farthest_point = max(points, key=lambda p: p.range)
-            target_range = farthest_point.range
-            target_index = farthest_point.index
-
-        # Lidar index and range are passed for coordinates' calculation
-        laser_beam_angle = (target_index * LIDAR_ANGLE_INCREMENT) + LIDAR_MINIMUM_ANGLE
-        rotated_angle = laser_beam_angle + heading_angle
-        target_x = target_range * math.cos(rotated_angle) + position_x
-        target_y = target_range * math.sin(rotated_angle) + position_y
+            target_x = farthest_point.cloud_point_x
+            target_y = farthest_point.cloud_point_y
 
         return target_x, target_y
 

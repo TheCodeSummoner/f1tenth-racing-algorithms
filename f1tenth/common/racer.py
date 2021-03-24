@@ -122,14 +122,16 @@ class Racer(ABC):
         return predicted_positions
 
     @staticmethod
-    def lidar_to_cartesian(ranges: Iterable, position_x: float, position_y: float, heading_angle: float) \
-            -> List[CartesianPoint]:
+    def lidar_to_cartesian(ranges: Iterable, position_x: float, position_y: float, heading_angle: float,
+                           starting_index: int = 0) -> List[CartesianPoint]:
         """
         Convert lidar points to a collection of cartesian coordinates.
+
+        Starting index can be used to start counting lidar points from a non-zero starting point.
         """
         points = []
         for index, lidar_range in enumerate(ranges):
-            laser_beam_angle = (index * LIDAR_ANGLE_INCREMENT) + LIDAR_MINIMUM_ANGLE
+            laser_beam_angle = ((starting_index + index) * LIDAR_ANGLE_INCREMENT) + LIDAR_MINIMUM_ANGLE
             rotated_angle = laser_beam_angle + heading_angle
             x_coordinate = lidar_range * math.cos(rotated_angle) + position_x
             y_coordinate = lidar_range * math.sin(rotated_angle) + position_y

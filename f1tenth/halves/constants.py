@@ -18,8 +18,12 @@ DEFAULT_LEFT_TARGET_INDEX = MID_INDEX + DEFAULT_TARGET_INDEX_DIVERGENCE
 DEFAULT_RIGHT_TARGET_INDEX = MID_INDEX - DEFAULT_TARGET_INDEX_DIVERGENCE
 DEFAULT_RANGE = 1
 
-# Limit for recognising lidar point - any points further than the limit will be ignored
+# Limit for recognising lidar point - any points further than the limit will be replaced with a different value
 FTG_DISTANCE_LIMIT = 9
+FTG_DISTANCE_LIMIT_REPLACEMENT = FTG_DISTANCE_LIMIT
+
+# Any points with this range will be avoided at all cost
+FTG_IGNORE_VALUE = 0
 
 # Limiting area for ignoring points next to the closest point
 FTG_AREA_RADIUS_SQUARED = 16
@@ -27,3 +31,6 @@ FTG_AREA_RADIUS_SQUARED = 16
 # Lidar angle increment and minimum angle (max angle is max index * increment + min angle, which gives pi)
 LIDAR_MINIMUM_ANGLE = -3.1415927410125732
 LIDAR_ANGLE_INCREMENT = 0.005823155865073204
+
+# Any points with this range will be avoided at all cost
+FTG_IGNORE_VALUE = 0

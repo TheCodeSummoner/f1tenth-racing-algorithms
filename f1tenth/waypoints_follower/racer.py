@@ -5,9 +5,8 @@ import csv
 from typing import List
 import numpy as np
 from .constants import WAYPOINTS_FILE_PATH, NEXT_WAYPOINT_THRESHOLD
-from ..common import Racer, PointFollowerMPC, marker
+from ..common import Racer, PointFollowerMPC, marker, CartesianPoint
 from ..common.marker import MarkerColour, MarkerArrayPublisherChannel
-from ..common.point import CartesianPoint
 
 
 class WaypointsFollowerRacer(Racer):

@@ -147,9 +147,16 @@ def mark_line_strips(positions: Iterable, colour: MarkerColour = DEFAULT_COLOUR,
         marker_type=MarkerType.LINE
     )
 
+    first_point = None
     for position_x, position_y in positions:
         point = Point()
         point.x, point.y, point.z = position_x, position_y, 0
         lines.points.append(point)
+
+        # Make sure the first point is later added to the end of the list, so that the shape is closed
+        if first_point is None:
+            first_point = point
+
+    lines.points.append(first_point)
 
     channel.value.publish(lines)
