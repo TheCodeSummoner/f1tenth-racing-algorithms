@@ -73,7 +73,8 @@ class HalvesRacer(Racer):
         self._mark_safety_radius(right_points)
 
         # Visualise cartesian points cloud as a polygon
-        visualisation_points = [CartesianPoint(point.cloud_point_x, point.cloud_point_y) for point in left_points + right_points if point.range != 0]
+        visualisation_points = [CartesianPoint(point.cloud_point_x, point.cloud_point_y)
+                                for point in left_points + right_points if point.range != 0]
         if len(visualisation_points) >= 3:
             marker.mark_line_strips(
                 positions=visualisation_points,
