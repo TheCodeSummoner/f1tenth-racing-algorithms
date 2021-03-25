@@ -2,16 +2,15 @@
 Modified Follow The Gap with MPC.
 """
 import math
-from typing import Tuple, List
+from typing import List
 import dataclasses
 import numpy as np
-from .constants import HORIZON_LENGTH, TIME_STEP
-from ..common import Racer, marker, PointFollowerMPC
-from ..common.marker import MarkerColour, MarkerArrayPublisherChannel, MarkerPublisherChannel
-from .constants import MAX_INDEX, MID_INDEX, LEFT_DIVERGENCE_INDEX, RIGHT_DIVERGENCE_INDEX
-from .constants import FTG_DISTANCE_LIMIT, FTG_AREA_RADIUS_SQUARED
+from ..common import Racer, marker, PointFollowerMPC, CartesianPoint
+from ..common.marker import MarkerColour, MarkerPublisherChannel, MarkerType
+from .constants import MID_INDEX, LEFT_DIVERGENCE_INDEX, RIGHT_DIVERGENCE_INDEX
+from .constants import FTG_DISTANCE_LIMIT, FTG_AREA_RADIUS_SQUARED, FTG_IGNORE_VALUE
 from .constants import DEFAULT_RANGE, DEFAULT_RIGHT_TARGET_INDEX, DEFAULT_LEFT_TARGET_INDEX
-from .constants import LIDAR_MINIMUM_ANGLE, LIDAR_ANGLE_INCREMENT
+from .constants import LIDAR_MINIMUM_ANGLE, LIDAR_ANGLE_INCREMENT, POSITION_PREDICTION_TIME
 
 
 class HalvesRacer(Racer):
@@ -46,59 +45,65 @@ class HalvesRacer(Racer):
         Given current position and heading angle, find the target reference point.
         """
         lidar_data = self._lidar_data
-        ranges = lidar_data.ranges
+        ranges = lidar_data.ranges[RIGHT_DIVERGENCE_INDEX:(LEFT_DIVERGENCE_INDEX+1)]
         cartesian_points = self.lidar_to_cartesian(
             ranges=ranges,
             position_x=position_x,
             position_y=position_y,
-            heading_angle=heading_angle
-        )
-
-        # Visualise cartesian points cloud as a polygon
-        marker.mark_line_strips(
-            positions=cartesian_points,
-            channel=MarkerPublisherChannel.FOURTH,
-            colour=MarkerColour(0.4, 1, 1),
-            scale=0.1
+            heading_angle=heading_angle,
+            starting_index=RIGHT_DIVERGENCE_INDEX
         )
 
         # Build a list of relevant Point instances for each half
-        left_points = list()
-        right_points = list()
-        for i in range(MAX_INDEX):
-            if LEFT_DIVERGENCE_INDEX >= i >= RIGHT_DIVERGENCE_INDEX:
-                cartesian_point = cartesian_points[i]
-                if i > MID_INDEX:
-                    left_points.append(self.Point(i, ranges[i], cartesian_point.x, cartesian_point.y))
-                else:
-                    right_points.append(self.Point(i, ranges[i], cartesian_point.x, cartesian_point.y))
+        left_points, right_points = list(), list()
+        for i in range(LEFT_DIVERGENCE_INDEX - RIGHT_DIVERGENCE_INDEX + 1):
+            cartesian_point = cartesian_points[i]
+            lidar_index = i + RIGHT_DIVERGENCE_INDEX
+            lidar_range = ranges[i]
+
+            if lidar_index > MID_INDEX:
+                left_points.append(self.Point(lidar_index, lidar_range, cartesian_point.x, cartesian_point.y))
+            else:
+                right_points.append(self.Point(lidar_index, lidar_range, cartesian_point.x, cartesian_point.y))
 
         # Avoid driving into points around the closest point
         self._mark_safety_radius(left_points)
         self._mark_safety_radius(right_points)
 
-        # Find the longest non-zero sequences in each half
-        left_point_space = self._find_longest_non_zero_sequence(left_points)
-        right_point_space = self._find_longest_non_zero_sequence(right_points)
-
-        # TODO: Simplify below operation(s) - don't need to derive target point via equations again, already computed
-        #   correct positions as cartesian_points
-
-        # Fix the range and the index if either of the spaces is empty (no valid drive points detected)
-        left_target_index, left_target_range = self._get_target_index_and_range(left_point_space,
-                                                                                DEFAULT_LEFT_TARGET_INDEX)
-        right_target_index, right_target_range = self._get_target_index_and_range(right_point_space,
-                                                                                  DEFAULT_RIGHT_TARGET_INDEX)
+        # Visualise cartesian points cloud as a polygon
+        visualisation_points = [CartesianPoint(point.cloud_point_x, point.cloud_point_y)
+                                for point in left_points + right_points if point.range != 0]
+        if len(visualisation_points) >= 3:
+            marker.mark(
+                positions=visualisation_points,
+                colour=MarkerColour(0.4, 1, 1),
+                scale=0.1,
+                marker_type=MarkerType.LINE_STRIPS,
+            )
 
         # Find the coordinates of FTG result for each half
-        left_x, left_y = self._get_target_point(left_target_index, left_target_range,
-                                                position_x, position_y, heading_angle)
-        right_x, right_y = self._get_target_point(right_target_index, right_target_range,
-                                                  position_x, position_y, heading_angle)
+        left_x, left_y = self._get_target_point(
+            points=self._find_longest_non_zero_sequence(left_points),
+            default_index=DEFAULT_LEFT_TARGET_INDEX,
+            position_x=position_x,
+            position_y=position_y,
+            heading_angle=heading_angle
+        )
+        right_x, right_y = self._get_target_point(
+            points=self._find_longest_non_zero_sequence(right_points),
+            default_index=DEFAULT_RIGHT_TARGET_INDEX,
+            position_x=position_x,
+            position_y=position_y,
+            heading_angle=heading_angle
+        )
 
         # Visualise resulting coordinates and find the final drive-to-point
-        marker.mark(left_x, left_y, colour=MarkerColour(0, 1, 0), channel=MarkerPublisherChannel.SECOND)
-        marker.mark(right_x, right_y, colour=MarkerColour(0, 0, 1), channel=MarkerPublisherChannel.THIRD)
+        marker.mark(
+            positions=[(left_x, left_y), (right_x, right_y)],
+            colour=MarkerColour(0, 0, 1),
+            channel=MarkerPublisherChannel.SECOND,
+            scale=0.3
+        )
         self._mpc.target_x, self._mpc.target_y = (left_x + right_x) / 2, (left_y + right_y) / 2
 
     @staticmethod
@@ -111,11 +116,11 @@ class HalvesRacer(Racer):
         closest_point = min(points, key=lambda p: p.range)
         for point in points:
             if point.range >= FTG_DISTANCE_LIMIT:
-                point.range = 0
+                point.range = FTG_IGNORE_VALUE
             elif (point.cloud_point_x - closest_point.cloud_point_x) ** 2 \
                     + (point.cloud_point_y - closest_point.cloud_point_y) ** 2 \
                     <= FTG_AREA_RADIUS_SQUARED:
-                point.range = 0
+                point.range = FTG_IGNORE_VALUE
 
     @staticmethod
     def _find_longest_non_zero_sequence(points: List[Point]) -> List[Point]:
@@ -135,10 +140,10 @@ class HalvesRacer(Racer):
         final_right_index = 0
         is_sequence_started = False
 
-        for i, p in enumerate(points):
+        for i, point in enumerate(points):
 
             # Lengthen the sub-sequence or start a new one if non-zero number found
-            if p != 0:
+            if point.range != 0:
                 if is_sequence_started:
                     current_right_index += 1
                 else:
@@ -166,60 +171,65 @@ class HalvesRacer(Racer):
         return points[final_left_index:final_right_index]
 
     @staticmethod
-    def _get_target_point(target_index: int, target_range: float,
+    def _get_target_point(points: List[Point], default_index: int,
                           position_x: float, position_y: float, heading_angle: float):
         """
-        Compute the target point given the current car's state, and the pre-fetched lidar index and range.
+        Compute the target reference point.
         """
-        laser_beam_angle = (target_index * LIDAR_ANGLE_INCREMENT) + LIDAR_MINIMUM_ANGLE
-        rotated_angle = laser_beam_angle + heading_angle
-        target_x = target_range * math.cos(rotated_angle) + position_x
-        target_y = target_range * math.sin(rotated_angle) + position_y
-        return target_x, target_y
-
-    @staticmethod
-    def _get_target_index_and_range(points: List[Point], default_index: int) -> Tuple[int, float]:
-        """
-        Find target point by selecting either the default values, or the farthest point in current sample.
-
-        Lidar index and range are returned to pass them to the next method.
-        """
+        # Find target point by selecting either the default values, or the farthest point in current sample
         if not points:
             target_range = DEFAULT_RANGE
             target_index = default_index
+            laser_beam_angle = (target_index * LIDAR_ANGLE_INCREMENT) + LIDAR_MINIMUM_ANGLE
+            rotated_angle = laser_beam_angle + heading_angle
+            target_x = target_range * math.cos(rotated_angle) + position_x
+            target_y = target_range * math.sin(rotated_angle) + position_y
         else:
             farthest_point = max(points, key=lambda p: p.range)
-            target_range = farthest_point.range
-            target_index = farthest_point.index
+            target_x = farthest_point.cloud_point_x
+            target_y = farthest_point.cloud_point_y
 
-        return target_index, target_range
+        return target_x, target_y
 
     def prepare_drive_command(self):
         """
-        Modified Follow The Gap with MPC.
+        Follow The Gap with MPC based on running FTG for left and right hand side of the vehicle separately.
 
         Each iteration the steering angle and the velocity must be computed.
         """
-        # Retrieve the vehicle's state
         position_x, position_y = self._retrieve_position()
         heading_angle = self._retrieve_heading_angle()
-        state = np.array([position_x, position_y, heading_angle])
 
         # Change target waypoints if needed
         self._adjust_target_position(position_x, position_y, heading_angle)
 
         # Mark where the vehicle is going
-        marker.mark(self._mpc.target_x, self._mpc.target_y)
-
-        # Compute inputs and visualise predicted trajectory
-        velocity, steering_angle = self._mpc.make_step(state)
-        marker.mark_array(
-            self.predict_trajectory(velocity, steering_angle, steps_count=HORIZON_LENGTH, time_step=TIME_STEP),
-            colour=MarkerColour(0, 1, 1),
-            scale=0.12,
-            channel=MarkerArrayPublisherChannel.SECOND
+        marker.mark(
+            positions=[(self._mpc.target_x, self._mpc.target_y)],
+            channel=MarkerPublisherChannel.THIRD
         )
 
-        # Finally, embed the inputs into the ackermann message
-        self._command.drive.steering_angle = steering_angle
-        self._command.drive.speed = velocity
+        # Predict the car's position in which it's likely to be after the computations are done
+        positions, heading_angles = self.predict_trajectory(
+            velocity=self.velocity,
+            steering_angle=self.steering_angle,
+            steps_count=1,
+            time_step=POSITION_PREDICTION_TIME,
+            position_x=position_x,
+            position_y=position_y,
+            heading_angle=heading_angle
+        )
+        position_x, position_y = positions[0]
+        heading_angle = heading_angles[0]
+
+        # Define the state used for MPC
+        state = np.array([position_x, position_y, heading_angle])
+
+        # Compute inputs and visualise predicted trajectory
+        self.velocity, self.steering_angle = self._mpc.make_step(state)
+        marker.mark(
+            positions=self._mpc.get_prediction_coordinates(),
+            colour=MarkerColour(0, 1, 1),
+            scale=0.12,
+            channel=MarkerPublisherChannel.FOURTH
+        )

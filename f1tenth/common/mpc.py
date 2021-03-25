@@ -3,7 +3,7 @@ Model Predictive Control base class module.
 
 Relevant algorithms should derive from the base class defined below.
 """
-from typing import Optional
+from typing import Optional, List
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 import matplotlib
@@ -14,6 +14,7 @@ from do_mpc.controller import MPC
 from do_mpc.graphics import Graphics
 import numpy as np
 from .constants import LR, WHEELBASE_LENGTH
+from .point import CartesianPoint
 
 
 @dataclass
@@ -21,6 +22,7 @@ class ControlConstraints:
     """
     Parametrisable collection of control constraints.
     """
+
     min_velocity: float = 0
     max_velocity: float = 7
     min_steering_angle: float = -0.4189
@@ -59,11 +61,12 @@ class ModelPredictiveControl(ABC):
     """
 
     def __init__(self, horizon_length: int = 5, time_step: float = 0.1, suppress_outputs: bool = True,
-                 plot_results: bool = True):
+                 plot_results: bool = True, control_constraints: ControlConstraints = ControlConstraints()):
         self._horizon_length = horizon_length
         self._time_step = time_step
         self._suppress_outputs = suppress_outputs
         self._plot_results = plot_results
+        self._control_constraints = control_constraints
 
         # Model, the controller, and plotting must be prepared via the `setup` method call
         self._model: Optional[Model] = None
@@ -89,7 +92,7 @@ class ModelPredictiveControl(ABC):
     @abstractmethod
     def stage_cost(self):
         """
-        This is the cost that will get added on each iteration.
+        Cost that will get added on each iteration.
 
         Also known as the Lagrange term.
         """
@@ -98,7 +101,7 @@ class ModelPredictiveControl(ABC):
     @abstractmethod
     def terminal_cost(self):
         """
-        This is the cost that will get added once, at the end of the iterations.
+        Cost that will get added once, at the end of the iterations.
 
         Also known as the Meyer term.
         """
@@ -126,7 +129,7 @@ class ModelPredictiveControl(ABC):
 
     def configure_model(self):
         """
-        Create state and input variables, as well as describe the vehicle's physical properties by using approximative
+        Create state and input variables, as well as describe the vehicle's physical properties by using approximative \
         motion's equations.
         """
         self._model = Model("continuous")
@@ -182,21 +185,22 @@ class ModelPredictiveControl(ABC):
         self._controller.set_param(
             n_horizon=self._horizon_length,
             t_step=self._time_step,
-            nlpsol_opts=nlpsol_opts
+            nlpsol_opts=nlpsol_opts,
+            store_full_solution=True,
         )
 
         # lterm -> lagrange term (stage cost); mterm -> meyer term (terminal cost)
         self._controller.set_objective(lterm=self.stage_cost, mterm=self.terminal_cost)
 
         # Control bounds stored in the configurable dataclass instance
-        self._controller.bounds["lower", "_u", "velocity"] = ControlConstraints.min_velocity
-        self._controller.bounds["upper", "_u", "velocity"] = ControlConstraints.max_velocity
-        self._controller.bounds["lower", "_u", "steering_angle"] = ControlConstraints.min_steering_angle
-        self._controller.bounds["upper", "_u", "steering_angle"] = ControlConstraints.max_steering_angle
+        self._controller.bounds["lower", "_u", "velocity"] = self._control_constraints.min_velocity
+        self._controller.bounds["upper", "_u", "velocity"] = self._control_constraints.max_velocity
+        self._controller.bounds["lower", "_u", "steering_angle"] = self._control_constraints.min_steering_angle
+        self._controller.bounds["upper", "_u", "steering_angle"] = self._control_constraints.max_steering_angle
 
     def configure_graphics(self):
         """
-        Setup matplotlib-based plotter and connect relevant data points to it.
+        Matplotlib-based plotter and connect relevant data points to it.
 
         Additional styling is added for more pleasing visuals and can be extended for custom plotting.
         """
@@ -208,21 +212,21 @@ class ModelPredictiveControl(ABC):
         matplotlib.rcParams["axes.grid"] = True
 
         # Create the figure and the axis
-        fig, ax = plt.subplots(3, sharex="all", figsize=(16, 9))
-        fig.align_ylabels()
+        figure, axis = plt.subplots(3, sharex="all", figsize=(16, 9))
+        figure.align_ylabels()
 
         # Draw relevant state and inputs
-        self._plotter.add_line(var_type="_x", var_name="position_x", axis=ax[0], color="green")
-        self._plotter.add_line(var_type="_x", var_name="position_y", axis=ax[0], color="blue")
-        self._plotter.add_line(var_type="_x", var_name="heading_angle", axis=ax[1], color="red")
-        self._plotter.add_line(var_type="_u", var_name="steering_angle", axis=ax[1], color="green")
-        self._plotter.add_line(var_type="_u", var_name="velocity", axis=ax[2], color="red")
+        self._plotter.add_line(var_type="_x", var_name="position_x", axis=axis[0], color="green")
+        self._plotter.add_line(var_type="_x", var_name="position_y", axis=axis[0], color="blue")
+        self._plotter.add_line(var_type="_x", var_name="heading_angle", axis=axis[1], color="red")
+        self._plotter.add_line(var_type="_u", var_name="steering_angle", axis=axis[1], color="green")
+        self._plotter.add_line(var_type="_u", var_name="velocity", axis=axis[2], color="red")
 
         # Set X and Y labels
-        ax[0].set_ylabel("Position")
-        ax[1].set_ylabel("Angles")
-        ax[2].set_ylabel("Velocity")
-        ax[2].set_xlabel("Time")
+        axis[0].set_ylabel("Position")
+        axis[1].set_ylabel("Angles")
+        axis[2].set_ylabel("Velocity")
+        axis[2].set_xlabel("Time")
 
     def make_step(self, state: np.array) -> np.array:
         """
@@ -235,6 +239,25 @@ class ModelPredictiveControl(ABC):
                                "to use the controller")
 
         return self._controller.make_step(state)
+
+    def get_prediction_coordinates(self) -> List[CartesianPoint]:
+        """
+        Retrieve a collection of predicted coordinates within the horizon (predicted trajectory).
+        """
+        points = []
+
+        # Fetch predictions data from MPC controller memory
+        predicted_x = self._controller.data.prediction(("_x", "position_x", 0)).flatten()
+        predicted_y = self._controller.data.prediction(("_x", "position_y", 0)).flatten()
+        data_length = len(predicted_x)
+
+        assert data_length == len(predicted_x) == len(predicted_y)
+
+        # Pass retrieved data to a custom data structure
+        for i in range(data_length):
+            points.append(CartesianPoint(predicted_x[i], predicted_y[i]))
+
+        return points
 
     def plot(self):
         """
@@ -278,23 +301,35 @@ class PointFollowerMPC(ModelPredictiveControl):
 
     @property
     def target_x(self) -> float:
+        """
+        Get target reference point position (x coordinate).
+        """
         return self._tx
 
     @target_x.setter
     def target_x(self, value: float):
+        """
+        Set target reference point position.
+        """
         self._tx = value
 
     @property
     def target_y(self) -> float:
+        """
+        Get target reference point position (y coordinate).
+        """
         return self._ty
 
     @target_y.setter
     def target_y(self, value: float):
+        """
+        Set target reference point position (y coordinate).
+        """
         self._ty = value
 
     def _prepare_target_position_template(self, _):
         """
-        Following the docs of do_mpc, an approach to populate the target position variables with values, at any given
+        Following the docs of do_mpc, an approach to populate the target position variables with values, at any given \
         point.
         """
         template = self._controller.get_tvp_template()
@@ -323,7 +358,7 @@ class PointFollowerMPC(ModelPredictiveControl):
 
     def configure_model(self):
         """
-        Additionally to the base class variables, two time varying parameters must be specified, to allow changing
+        Additionally to the base class variables, two time varying parameters must be specified, to allow changing \
         the target position with time.
         """
         super().configure_model()

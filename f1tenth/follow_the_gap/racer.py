@@ -12,21 +12,20 @@ class FollowTheGapRacer(Racer):
     Follow the gap racer drives by steering towards the largest gap in front of it.
     """
 
-    def __init__(self):
-        super().__init__()
-
     def prepare_drive_command(self):
         """
-        Simple follow-the-gap control.
+        Follow-the-gap control (used as a reference algorithm when implementing the MPC ones).
 
         Each iteration the steering angle and the velocity must be computed. Additionally, predicted trajectory
         is plotted for more pleasing visuals and understanding of the steering angles.
         """
         angle = self._calculate_angle()
         speed = self._calculate_speed()
-        marker.mark_array(self.predict_trajectory(speed, angle))
-        self._command.drive.steering_angle = angle
-        self._command.drive.speed = speed
+        marker.mark(
+            positions=self.predict_trajectory(speed, angle)[0]
+        )
+        self.steering_angle = angle
+        self.velocity = speed
 
     def _calculate_angle(self) -> float:
         """
@@ -79,7 +78,7 @@ class FollowTheGapRacer(Racer):
         """
         Calculate target speed based on the current steering angle.
         """
-        angle = abs(self._command.drive.steering_angle)
+        angle = abs(self.steering_angle)
 
         if angle <= MAX_SPEED_SELECTION_THRESHOLD:
             return MAX_SPEED
