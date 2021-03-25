@@ -100,8 +100,9 @@ class HalvesRacer(Racer):
         # Visualise resulting coordinates and find the final drive-to-point
         marker.mark(
             positions=[(left_x, left_y), (right_x, right_y)],
-            colour=MarkerColour(0, 1, 0),
-            channel=MarkerPublisherChannel.SECOND
+            colour=MarkerColour(0, 0, 1),
+            channel=MarkerPublisherChannel.SECOND,
+            scale=0.3
         )
         self._mpc.target_x, self._mpc.target_y = (left_x + right_x) / 2, (left_y + right_y) / 2
 
