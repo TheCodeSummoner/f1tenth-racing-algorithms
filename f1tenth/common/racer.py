@@ -15,7 +15,7 @@ from ackermann_msgs.msg import AckermannDriveStamped
 from nav_msgs.msg import Odometry
 from .point import CartesianPoint
 from . import marker
-from .marker import MarkerColour
+from .marker import MarkerColour, MarkerType, MarkerPublisherChannel
 from .constants import LASER_SCAN_TOPIC, DRIVE_TOPIC, ODOMETRY_TOPIC
 from .constants import LR, WHEELBASE_LENGTH
 from .constants import LIDAR_MINIMUM_ANGLE, LIDAR_ANGLE_INCREMENT, LIDAR_MAX_INDEX
@@ -118,11 +118,13 @@ class Racer(ABC):
 
         # Lap line (or rather, lap segment) is defined by two points
         self._race_start_position = [race_start_point_left, race_start_point_right]
-        marker.mark_array(
+        marker.mark(
             positions=self._race_start_position,
             scale=0.2,
             colour=MarkerColour(1, 1, 0),
             duration=0,
+            marker_type=MarkerType.LINES,
+            channel=MarkerPublisherChannel.FIFTH,
         )
 
     def _lap_passed(self):

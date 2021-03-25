@@ -6,7 +6,7 @@ from typing import List
 import dataclasses
 import numpy as np
 from ..common import Racer, marker, PointFollowerMPC, CartesianPoint
-from ..common.marker import MarkerColour, MarkerArrayPublisherChannel, MarkerPublisherChannel
+from ..common.marker import MarkerColour, MarkerPublisherChannel, MarkerType
 from .constants import MID_INDEX, LEFT_DIVERGENCE_INDEX, RIGHT_DIVERGENCE_INDEX
 from .constants import FTG_DISTANCE_LIMIT, FTG_AREA_RADIUS_SQUARED, FTG_IGNORE_VALUE
 from .constants import DEFAULT_RANGE, DEFAULT_RIGHT_TARGET_INDEX, DEFAULT_LEFT_TARGET_INDEX
@@ -74,11 +74,11 @@ class HalvesRacer(Racer):
         visualisation_points = [CartesianPoint(point.cloud_point_x, point.cloud_point_y)
                                 for point in left_points + right_points if point.range != 0]
         if len(visualisation_points) >= 3:
-            marker.mark_line_strips(
+            marker.mark(
                 positions=visualisation_points,
-                channel=MarkerPublisherChannel.FOURTH,
                 colour=MarkerColour(0.4, 1, 1),
-                scale=0.1
+                scale=0.1,
+                marker_type=MarkerType.LINE_STRIPS,
             )
 
         # Find the coordinates of FTG result for each half
@@ -98,8 +98,11 @@ class HalvesRacer(Racer):
         )
 
         # Visualise resulting coordinates and find the final drive-to-point
-        marker.mark(left_x, left_y, colour=MarkerColour(0, 1, 0), channel=MarkerPublisherChannel.SECOND)
-        marker.mark(right_x, right_y, colour=MarkerColour(0, 0, 1), channel=MarkerPublisherChannel.THIRD)
+        marker.mark(
+            positions=[(left_x, left_y), (right_x, right_y)],
+            colour=MarkerColour(0, 1, 0),
+            channel=MarkerPublisherChannel.SECOND
+        )
         self._mpc.target_x, self._mpc.target_y = (left_x + right_x) / 2, (left_y + right_y) / 2
 
     @staticmethod
@@ -200,7 +203,10 @@ class HalvesRacer(Racer):
         self._adjust_target_position(position_x, position_y, heading_angle)
 
         # Mark where the vehicle is going
-        marker.mark(self._mpc.target_x, self._mpc.target_y)
+        marker.mark(
+            positions=[(self._mpc.target_x, self._mpc.target_y)],
+            channel=MarkerPublisherChannel.THIRD
+        )
 
         # Predict the car's position in which it's likely to be after the computations are done
         positions, heading_angles = self.predict_trajectory(
@@ -220,9 +226,9 @@ class HalvesRacer(Racer):
 
         # Compute inputs and visualise predicted trajectory
         self.velocity, self.steering_angle = self._mpc.make_step(state)
-        marker.mark_array(
-            self._mpc.get_prediction_coordinates(),
+        marker.mark(
+            positions=self._mpc.get_prediction_coordinates(),
             colour=MarkerColour(0, 1, 1),
             scale=0.12,
-            channel=MarkerArrayPublisherChannel.SECOND
+            channel=MarkerPublisherChannel.FOURTH
         )

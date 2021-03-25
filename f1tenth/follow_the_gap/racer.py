@@ -21,7 +21,9 @@ class FollowTheGapRacer(Racer):
         """
         angle = self._calculate_angle()
         speed = self._calculate_speed()
-        marker.mark_array(self.predict_trajectory(speed, angle)[0])
+        marker.mark(
+            positions=self.predict_trajectory(speed, angle)[0]
+        )
         self.steering_angle = angle
         self.velocity = speed
 

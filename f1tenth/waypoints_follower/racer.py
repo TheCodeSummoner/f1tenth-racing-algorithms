@@ -6,7 +6,7 @@ from typing import List
 import numpy as np
 from .constants import WAYPOINTS_FILE_PATH, NEXT_WAYPOINT_THRESHOLD
 from ..common import Racer, PointFollowerMPC, marker, CartesianPoint
-from ..common.marker import MarkerColour, MarkerArrayPublisherChannel
+from ..common.marker import MarkerColour, MarkerPublisherChannel
 
 
 class WaypointsFollowerRacer(Racer):
@@ -27,12 +27,11 @@ class WaypointsFollowerRacer(Racer):
         self._mpc.target_x, self._mpc.target_y = self._waypoints[self._waypoints_iterator]
 
         # Mark the reference trajectory for better visibility
-        marker.mark_array(
-            self._waypoints,
+        marker.mark(
+            positions=self._waypoints,
             colour=MarkerColour(0, 1, 0),
             scale=0.05,
             duration=0,
-            channel=MarkerArrayPublisherChannel.FIRST
         )
 
     def _read_waypoints(self, file_path: str):
@@ -66,15 +65,18 @@ class WaypointsFollowerRacer(Racer):
         self._adjust_target_position(position_x, position_y)
 
         # Mark where the vehicle is going
-        marker.mark(self._mpc.target_x, self._mpc.target_y)
+        marker.mark(
+            positions=[(self._mpc.target_x, self._mpc.target_y)],
+            channel=MarkerPublisherChannel.SECOND
+        )
 
         # Compute inputs and visualise predicted trajectory
         velocity, steering_angle = self._mpc.make_step(state)
-        marker.mark_array(
-            self._mpc.get_prediction_coordinates(),
+        marker.mark(
+            positions=self._mpc.get_prediction_coordinates(),
             colour=MarkerColour(0, 1, 1),
             scale=0.12,
-            channel=MarkerArrayPublisherChannel.SECOND
+            channel=MarkerPublisherChannel.THIRD
         )
 
         # Finally, embed the inputs into the ackermann message
