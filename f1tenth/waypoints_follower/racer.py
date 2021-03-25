@@ -78,5 +78,5 @@ class WaypointsFollowerRacer(Racer):
         )
 
         # Finally, embed the inputs into the ackermann message
-        self._command.drive.steering_angle = steering_angle
-        self._command.drive.speed = velocity
+        self.steering_angle = steering_angle
+        self.velocity = velocity

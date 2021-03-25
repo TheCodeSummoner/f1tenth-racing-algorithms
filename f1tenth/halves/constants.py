@@ -1,15 +1,16 @@
 """
 Algorithm-relevant and tuning constants.
 """
+from ..common.constants import LIDAR_MAX_INDEX
+
 # Define parameters here for easier configurability
 HORIZON_LENGTH = 6
 TIME_STEP = 0.027
 
 # Limits for deciding left and right halves (counter-clockwise)
-MAX_INDEX = 1080
 RIGHT_DIVERGENCE_INDEX = 350
-MID_INDEX = MAX_INDEX // 2
-LEFT_DIVERGENCE_INDEX = MAX_INDEX - RIGHT_DIVERGENCE_INDEX
+MID_INDEX = LIDAR_MAX_INDEX // 2
+LEFT_DIVERGENCE_INDEX = LIDAR_MAX_INDEX - RIGHT_DIVERGENCE_INDEX
 
 # Values deciding the car's behaviour in case of either left or right half has no valid FTG points
 # This it to avoid index errors on trying to access empty point arrays

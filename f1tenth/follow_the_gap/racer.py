@@ -22,8 +22,8 @@ class FollowTheGapRacer(Racer):
         angle = self._calculate_angle()
         speed = self._calculate_speed()
         marker.mark_array(self.predict_trajectory(speed, angle)[0])
-        self._command.drive.steering_angle = angle
-        self._command.drive.speed = speed
+        self.steering_angle = angle
+        self.velocity = speed
 
     def _calculate_angle(self) -> float:
         """
@@ -76,7 +76,7 @@ class FollowTheGapRacer(Racer):
         """
         Calculate target speed based on the current steering angle.
         """
-        angle = abs(self._command.drive.steering_angle)
+        angle = abs(self.steering_angle)
 
         if angle <= MAX_SPEED_SELECTION_THRESHOLD:
             return MAX_SPEED

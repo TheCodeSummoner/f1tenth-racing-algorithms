@@ -39,8 +39,6 @@ class HalvesRacer(Racer):
     def __init__(self, mpc: PointFollowerMPC):
         super().__init__()
         self._mpc = mpc
-        self._velocity = 0
-        self._steering_angle = 0
 
     def _adjust_target_position(self, position_x: float, position_y: float, heading_angle: float):
         """
@@ -206,8 +204,8 @@ class HalvesRacer(Racer):
 
         # Predict the car's position in which it's likely to be after the computations are done
         positions, heading_angles = self.predict_trajectory(
-            velocity=self._velocity,
-            steering_angle=self._steering_angle,
+            velocity=self.velocity,
+            steering_angle=self.steering_angle,
             steps_count=1,
             time_step=POSITION_PREDICTION_TIME,
             position_x=position_x,
@@ -221,14 +219,10 @@ class HalvesRacer(Racer):
         state = np.array([position_x, position_y, heading_angle])
 
         # Compute inputs and visualise predicted trajectory
-        self._velocity, self._steering_angle = self._mpc.make_step(state)
+        self.velocity, self.steering_angle = self._mpc.make_step(state)
         marker.mark_array(
             self._mpc.get_prediction_coordinates(),
             colour=MarkerColour(0, 1, 1),
             scale=0.12,
             channel=MarkerArrayPublisherChannel.SECOND
         )
-
-        # Finally, embed the inputs into the ackermann message
-        self._command.drive.steering_angle = self._steering_angle
-        self._command.drive.speed = self._velocity
