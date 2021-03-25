@@ -25,7 +25,7 @@ LIDAR_ANGLE_INCREMENT = 0.005823155865073204
 LIDAR_MAX_INDEX = 1080
 
 # Declare how close should the vehicle be to the lap line to consider as passing through it (this is distance squared)
-LAP_FINISH_DISTANCE = 0.5
+LAP_FINISH_DISTANCE = 0.01
 
 # Declare how far should the vehicle be after crossing the line to start checking for lap finish (also distance squared)
 LAP_CHECK_DISTANCE = 4
