@@ -48,7 +48,7 @@ RUN apt-get install git -y \
 # Install the application
 RUN mkdir $WORKSPACE/code \
     && cd $WORKSPACE/code \
-    && git clone https://89447c1d8e792ef3e72f5a02585cad4dc5bc686d@github.com/TheCodeSummoner/f1tenth-racing-algorithms.git \
+    && git clone https://github.com/TheCodeSummoner/f1tenth-racing-algorithms.git \
     && cd $WORKSPACE/code/f1tenth-racing-algorithms \
     && python3.8 -m pip install .
 
