@@ -9,7 +9,7 @@ from ..common import Racer, marker, PointFollowerMPC, CartesianPoint
 from ..common.marker import MarkerColour, MarkerPublisherChannel, MarkerType
 from ..common.constants import LIDAR_MINIMUM_ANGLE, LIDAR_ANGLE_INCREMENT
 from .constants import MID_INDEX, LEFT_DIVERGENCE_INDEX, RIGHT_DIVERGENCE_INDEX
-from .constants import FTG_DISTANCE_LIMIT, FTG_AREA_RADIUS_SQUARED, FTG_IGNORE_VALUE
+from .constants import FTG_DISTANCE_LIMIT, FTG_AREA_RADIUS_SQUARED, FTG_IGNORE_RANGE
 from .constants import DEFAULT_RANGE, DEFAULT_RIGHT_TARGET_INDEX, DEFAULT_LEFT_TARGET_INDEX
 from .constants import POSITION_PREDICTION_TIME
 
@@ -73,7 +73,7 @@ class HalvesRacer(Racer):
 
         # Visualise cartesian points cloud as a polygon
         visualisation_points = [CartesianPoint(point.cloud_point_x, point.cloud_point_y)
-                                for point in left_points + right_points if point.range != 0]
+                                for point in left_points + right_points if point.range != FTG_IGNORE_RANGE]
         if len(visualisation_points) >= 3:
             marker.mark(
                 positions=visualisation_points,
@@ -84,14 +84,14 @@ class HalvesRacer(Racer):
 
         # Find the coordinates of FTG result for each half
         left_x, left_y = self._get_target_point(
-            points=self._find_longest_non_zero_sequence(left_points),
+            points=self._find_longest_sequence(left_points, FTG_IGNORE_RANGE),
             default_index=DEFAULT_LEFT_TARGET_INDEX,
             position_x=position_x,
             position_y=position_y,
             heading_angle=heading_angle
         )
         right_x, right_y = self._get_target_point(
-            points=self._find_longest_non_zero_sequence(right_points),
+            points=self._find_longest_sequence(right_points, FTG_IGNORE_RANGE),
             default_index=DEFAULT_RIGHT_TARGET_INDEX,
             position_x=position_x,
             position_y=position_y,
@@ -110,21 +110,21 @@ class HalvesRacer(Racer):
     @staticmethod
     def _mark_safety_radius(points: List[Point]):
         """
-        Mark too far points, the closest point, and all points 'next' to it as distance 0 (FTG algorithm).
+        Mark too far points, the closest point, and all points 'next' to it as ignore distance (FTG algorithm).
 
-        Closest point's distance will also be marked as 0 because it's 0 measurement units away from itself.
+        Closest point's distance will also be ignored because it's 0 measurement units away from itself.
         """
         closest_point = min(points, key=lambda p: p.range)
         for point in points:
             if point.range >= FTG_DISTANCE_LIMIT:
-                point.range = FTG_IGNORE_VALUE
+                point.range = FTG_IGNORE_RANGE
             elif (point.cloud_point_x - closest_point.cloud_point_x) ** 2 \
                     + (point.cloud_point_y - closest_point.cloud_point_y) ** 2 \
                     <= FTG_AREA_RADIUS_SQUARED:
-                point.range = FTG_IGNORE_VALUE
+                point.range = FTG_IGNORE_RANGE
 
     @staticmethod
-    def _find_longest_non_zero_sequence(points: List[Point]) -> List[Point]:
+    def _find_longest_sequence(points: List[Point], ignore_range: float) -> List[Point]:
         """
         Very "manual" approach to finding such a sequence.
 
@@ -144,7 +144,7 @@ class HalvesRacer(Racer):
         for i, point in enumerate(points):
 
             # Lengthen the sub-sequence or start a new one if non-zero number found
-            if point.range != 0:
+            if point.range != ignore_range:
                 if is_sequence_started:
                     current_right_index += 1
                 else:

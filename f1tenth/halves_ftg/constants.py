@@ -23,7 +23,7 @@ DEFAULT_RANGE = 1
 FTG_DISTANCE_LIMIT = 9
 
 # Any points with this range will be avoided at all cost
-FTG_IGNORE_VALUE = 0
+FTG_IGNORE_RANGE = 0
 
 # Limiting area for ignoring points next to the closest point
 FTG_AREA_RADIUS_SQUARED = 16

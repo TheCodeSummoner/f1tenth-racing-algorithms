@@ -1,5 +1,5 @@
 """
-Modified Follow The Gap with MPC.
+Modified FTG with MPC.
 """
 import rospy
 from .racer import PointFollowerMPC, HalvesRacer
