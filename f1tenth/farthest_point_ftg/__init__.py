@@ -2,7 +2,8 @@
 Farthest-point FTG with MPC.
 """
 import rospy
-from .racer import PointFollowerMPC, FarthestPointFollower
+from ..common import PointFollowerMPC
+from .racer import FarthestPointFollower
 from .constants import HORIZON_LENGTH, TIME_STEP
 
 
@@ -17,7 +18,6 @@ def run():
 
 
 __all__ = [
-    "PointFollowerMPC",
     "FarthestPointFollower",
     "run"
 ]

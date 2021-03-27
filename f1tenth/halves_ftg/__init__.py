@@ -2,7 +2,8 @@
 Modified FTG with MPC.
 """
 import rospy
-from .racer import PointFollowerMPC, HalvesRacer
+from ..common import PointFollowerMPC
+from .racer import HalvesRacer
 from .constants import HORIZON_LENGTH, TIME_STEP
 
 
@@ -17,7 +18,6 @@ def run():
 
 
 __all__ = [
-    "PointFollowerMPC",
     "HalvesRacer",
     "run"
 ]

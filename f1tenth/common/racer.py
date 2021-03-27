@@ -13,9 +13,10 @@ from rospy import Subscriber, Publisher, Time
 from sensor_msgs.msg import LaserScan
 from ackermann_msgs.msg import AckermannDriveStamped
 from nav_msgs.msg import Odometry
-from .point import CartesianPoint
 from . import marker
+from .point import LidarPoint, CartesianPoint
 from .marker import MarkerColour, MarkerType, MarkerPublisherChannel
+from .mpc import PointFollowerMPC
 from .constants import LASER_SCAN_TOPIC, DRIVE_TOPIC, ODOMETRY_TOPIC
 from .constants import LR, WHEELBASE_LENGTH
 from .constants import LIDAR_MINIMUM_ANGLE, LIDAR_ANGLE_INCREMENT, LIDAR_MAX_INDEX
@@ -289,3 +290,124 @@ class Racer(ABC):
         Start listening to the subscribed topics and calling associated callbacks.
         """
         rospy.spin()
+
+
+class FollowTheGapRacer(Racer):
+    """
+    Base class for any follow the gap (apart from the reference one) algorithms.
+    """
+
+    def __init__(self, mpc: PointFollowerMPC):
+        super().__init__()
+        self._mpc = mpc
+
+    @property
+    def _position_prediction_time(self) -> float:
+        """
+        Override this method to change the position adjustment based on the event loop computation time.
+        """
+        return 0
+
+    @staticmethod
+    def _find_longest_sequence(points: List[LidarPoint], ignore_range: float) -> List[LidarPoint]:
+        """
+        Very "manual" approach to finding such a sequence.
+
+        Rather than using complicated Python mechanisms (zipping, filtering, etc.), a more verbose algorithm is used for
+        the benefit of understanding the methodology of this method.
+
+        When encountering a non-ignore range the sub-sequence is either lengthened if it already exists, or a new one
+        is created, whereas encountering the ignore range ends the current sub-sequence.
+        """
+        current_left_index = 0
+        current_right_index = 0
+        current_longest_sequence = 0
+        final_left_index = 0
+        final_right_index = 0
+        is_sequence_started = False
+
+        for i, point in enumerate(points):
+
+            # Lengthen the sub-sequence or start a new one if non-ignore number found
+            if point.range != ignore_range:
+                if is_sequence_started:
+                    current_right_index += 1
+                else:
+                    is_sequence_started = True
+                    current_left_index = i
+                    current_right_index = i
+
+            # End current sub-sequence and see if it was any bigger than the previous one
+            else:
+                if is_sequence_started:
+                    length = current_right_index - current_left_index
+                    if length > current_longest_sequence:
+                        final_left_index = current_left_index
+                        final_right_index = current_right_index
+                        current_longest_sequence = length
+                    is_sequence_started = False
+
+        # Finally, make sure that if the last point was also within the sub-sequence, the sub-sequence is also counted
+        if is_sequence_started:
+            length = current_right_index - current_left_index
+            if length > current_longest_sequence:
+                final_left_index = current_left_index
+                final_right_index = current_right_index
+
+        return points[final_left_index:final_right_index]
+
+    def prepare_drive_command(self):
+        """
+        Follow The Gap with MPC.
+
+        The state is initially adjusted each event loop to accommodate for the car moving while the computations take
+        place.
+        """
+        position_x, position_y = self._retrieve_position()
+        heading_angle = self._retrieve_heading_angle()
+
+        # Change target waypoints if needed
+        self._adjust_target_position(position_x, position_y, heading_angle)
+
+        # Mark where the vehicle is going
+        marker.mark(
+            positions=[(self._mpc.target_x, self._mpc.target_y)],
+            channel=MarkerPublisherChannel.SECOND
+        )
+
+        # Predict the car's position in which it's likely to be after the computations are done
+        positions, heading_angles = self.predict_trajectory(
+            velocity=self.velocity,
+            steering_angle=self.steering_angle,
+            steps_count=1,
+            time_step=self._position_prediction_time,
+            position_x=position_x,
+            position_y=position_y,
+            heading_angle=heading_angle
+        )
+        position_x, position_y = positions[0]
+        heading_angle = heading_angles[0]
+
+        # Define the state used for MPC
+        state = np.array([position_x, position_y, heading_angle])
+
+        # Compute inputs and visualise predicted trajectory
+        self.velocity, self.steering_angle = self._mpc.make_step(state)
+        marker.mark(
+            positions=self._mpc.get_prediction_coordinates(),
+            colour=MarkerColour(0, 1, 1),
+            scale=0.12,
+            channel=MarkerPublisherChannel.THIRD
+        )
+
+    @abstractmethod
+    def _adjust_target_position(self, position_x: float, position_y: float, heading_angle: float):
+        """
+        Populate target reference point in MPC.
+        """
+
+    @abstractmethod
+    def _get_target_point(self, points: List[LidarPoint], **kwargs) -> CartesianPoint:
+        """
+        Find target reference point given a collection of lidar points.
+        """

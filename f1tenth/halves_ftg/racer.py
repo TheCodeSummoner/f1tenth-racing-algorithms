@@ -1,11 +1,9 @@
 """
-Modified Follow The Gap with MPC.
+Halves FTG with MPC.
 """
 import math
 from typing import List
-import dataclasses
-import numpy as np
-from ..common import Racer, marker, PointFollowerMPC, CartesianPoint
+from ..common import FollowTheGapRacer, marker, CartesianPoint, LidarPoint
 from ..common.marker import MarkerColour, MarkerPublisherChannel, MarkerType
 from ..common.constants import LIDAR_MINIMUM_ANGLE, LIDAR_ANGLE_INCREMENT
 from .constants import MID_INDEX, LEFT_DIVERGENCE_INDEX, RIGHT_DIVERGENCE_INDEX
@@ -14,9 +12,9 @@ from .constants import DEFAULT_RANGE, DEFAULT_RIGHT_TARGET_INDEX, DEFAULT_LEFT_T
 from .constants import POSITION_PREDICTION_TIME
 
 
-class HalvesRacer(Racer):
+class HalvesRacer(FollowTheGapRacer):
     """
-    The racer solves a follow-the-gap algorithm twice, for each side of the car.
+    The racer solves a farthest-point follow-the-gap algorithm twice, for each side of the car.
 
     Consider the following ascii graphic:
 
@@ -33,13 +31,12 @@ class HalvesRacer(Racer):
     to be followed.
     """
 
-    # Describe a lidar / cloud point data together
-    Point = dataclasses.make_dataclass("Point", [("index", int), ("range", float),
-                                                 ("cloud_point_x", float), ("cloud_point_y", float)])
-
-    def __init__(self, mpc: PointFollowerMPC):
-        super().__init__()
-        self._mpc = mpc
+    @property
+    def _position_prediction_time(self) -> float:
+        """
+        Overridden to allow position predictions.
+        """
+        return POSITION_PREDICTION_TIME
 
     def _adjust_target_position(self, position_x: float, position_y: float, heading_angle: float):
         """
@@ -63,17 +60,17 @@ class HalvesRacer(Racer):
             lidar_range = ranges[i]
 
             if lidar_index > MID_INDEX:
-                left_points.append(self.Point(lidar_index, lidar_range, cartesian_point.x, cartesian_point.y))
+                left_points.append(LidarPoint(lidar_index, lidar_range, cartesian_point))
             else:
-                right_points.append(self.Point(lidar_index, lidar_range, cartesian_point.x, cartesian_point.y))
+                right_points.append(LidarPoint(lidar_index, lidar_range, cartesian_point))
 
         # Avoid driving into points around the closest point
         self._mark_safety_radius(left_points)
         self._mark_safety_radius(right_points)
 
         # Visualise cartesian points cloud as a polygon
-        visualisation_points = [CartesianPoint(point.cloud_point_x, point.cloud_point_y)
-                                for point in left_points + right_points if point.range != FTG_IGNORE_RANGE]
+        visualisation_points = [point.cartesian for point in left_points + right_points
+                                if point.range != FTG_IGNORE_RANGE]
         if len(visualisation_points) >= 3:
             marker.mark(
                 positions=visualisation_points,
@@ -108,7 +105,7 @@ class HalvesRacer(Racer):
         self._mpc.target_x, self._mpc.target_y = (left_x + right_x) / 2, (left_y + right_y) / 2
 
     @staticmethod
-    def _mark_safety_radius(points: List[Point]):
+    def _mark_safety_radius(points: List[LidarPoint]):
         """
         Mark too far points, the closest point, and all points 'next' to it as ignore distance (FTG algorithm).
 
@@ -118,66 +115,18 @@ class HalvesRacer(Racer):
         for point in points:
             if point.range >= FTG_DISTANCE_LIMIT:
                 point.range = FTG_IGNORE_RANGE
-            elif (point.cloud_point_x - closest_point.cloud_point_x) ** 2 \
-                    + (point.cloud_point_y - closest_point.cloud_point_y) ** 2 \
-                    <= FTG_AREA_RADIUS_SQUARED:
+            elif (point.x - closest_point.x) ** 2 + (point.y - closest_point.y) ** 2 <= FTG_AREA_RADIUS_SQUARED:
                 point.range = FTG_IGNORE_RANGE
 
-    @staticmethod
-    def _find_longest_sequence(points: List[Point], ignore_range: float) -> List[Point]:
+    def _get_target_point(self, points: List[LidarPoint], **kwargs) -> CartesianPoint:
         """
-        Very "manual" approach to finding such a sequence.
-
-        Rather than using complicated Python mechanisms (zipping, filtering, etc.), a more verbose algorithm is used for
-        the benefit of understanding the methodology of this method.
-
-        When encountering a non-ignore range the sub-sequence is either lengthened if it already exists, or a new one
-        is created, whereas encountering the ignore range ends the current sub-sequence.
+        Compute the target reference point (either default point at a reasonable angle from the car, or farthest point).
         """
-        current_left_index = 0
-        current_right_index = 0
-        current_longest_sequence = 0
-        final_left_index = 0
-        final_right_index = 0
-        is_sequence_started = False
+        default_index: int = kwargs.pop("default_index")
+        position_x: float = kwargs.pop("position_x")
+        position_y: float = kwargs.pop("position_y")
+        heading_angle: float = kwargs.pop("heading_angle")
 
-        for i, point in enumerate(points):
-
-            # Lengthen the sub-sequence or start a new one if non-ignore number found
-            if point.range != ignore_range:
-                if is_sequence_started:
-                    current_right_index += 1
-                else:
-                    is_sequence_started = True
-                    current_left_index = i
-                    current_right_index = i
-
-            # End current sub-sequence and see if it was any bigger than the previous one
-            else:
-                if is_sequence_started:
-                    length = current_right_index - current_left_index
-                    if length > current_longest_sequence:
-                        final_left_index = current_left_index
-                        final_right_index = current_right_index
-                        current_longest_sequence = length
-                    is_sequence_started = False
-
-        # Finally, make sure that if the last point was also within the sub-sequence, the sub-sequence is also counted
-        if is_sequence_started:
-            length = current_right_index - current_left_index
-            if length > current_longest_sequence:
-                final_left_index = current_left_index
-                final_right_index = current_right_index
-
-        return points[final_left_index:final_right_index]
-
-    @staticmethod
-    def _get_target_point(points: List[Point], default_index: int,
-                          position_x: float, position_y: float, heading_angle: float):
-        """
-        Compute the target reference point.
-        """
-        # Find target point by selecting either the default values, or the farthest point in current sample
         if not points:
             target_range = DEFAULT_RANGE
             target_index = default_index
@@ -185,52 +134,7 @@ class HalvesRacer(Racer):
             rotated_angle = laser_beam_angle + heading_angle
             target_x = target_range * math.cos(rotated_angle) + position_x
             target_y = target_range * math.sin(rotated_angle) + position_y
-        else:
-            farthest_point = max(points, key=lambda p: p.range)
-            target_x = farthest_point.cloud_point_x
-            target_y = farthest_point.cloud_point_y
+            return CartesianPoint(target_x, target_y)
 
-        return target_x, target_y
-
-    def prepare_drive_command(self):
-        """
-        Follow The Gap with MPC based on running FTG for left and right hand side of the vehicle separately.
-
-        Each iteration the steering angle and the velocity must be computed.
-        """
-        position_x, position_y = self._retrieve_position()
-        heading_angle = self._retrieve_heading_angle()
-
-        # Change target waypoints if needed
-        self._adjust_target_position(position_x, position_y, heading_angle)
-
-        # Mark where the vehicle is going
-        marker.mark(
-            positions=[(self._mpc.target_x, self._mpc.target_y)],
-            channel=MarkerPublisherChannel.THIRD
-        )
-
-        # Predict the car's position in which it's likely to be after the computations are done
-        positions, heading_angles = self.predict_trajectory(
-            velocity=self.velocity,
-            steering_angle=self.steering_angle,
-            steps_count=1,
-            time_step=POSITION_PREDICTION_TIME,
-            position_x=position_x,
-            position_y=position_y,
-            heading_angle=heading_angle
-        )
-        position_x, position_y = positions[0]
-        heading_angle = heading_angles[0]
-
-        # Define the state used for MPC
-        state = np.array([position_x, position_y, heading_angle])
-
-        # Compute inputs and visualise predicted trajectory
-        self.velocity, self.steering_angle = self._mpc.make_step(state)
-        marker.mark(
-            positions=self._mpc.get_prediction_coordinates(),
-            colour=MarkerColour(0, 1, 1),
-            scale=0.12,
-            channel=MarkerPublisherChannel.FOURTH
-        )
+        # Points not empty so can return farthest point
+        return max(points, key=lambda p: p.range).cartesian
