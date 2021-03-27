@@ -41,9 +41,9 @@ This sub-package follows the standard usage instructions of the parent package.
 #### Run from python console
 
 ```python
-from f1tenth import halves
+from f1tenth import halves_ftg
 
-halves.run()
+halves_ftg.run()
 ```
 
 #### Run main directly

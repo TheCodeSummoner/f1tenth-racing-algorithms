@@ -7,10 +7,11 @@ import dataclasses
 import numpy as np
 from ..common import Racer, marker, PointFollowerMPC, CartesianPoint
 from ..common.marker import MarkerColour, MarkerPublisherChannel, MarkerType
+from ..common.constants import LIDAR_MINIMUM_ANGLE, LIDAR_ANGLE_INCREMENT
 from .constants import MID_INDEX, LEFT_DIVERGENCE_INDEX, RIGHT_DIVERGENCE_INDEX
 from .constants import FTG_DISTANCE_LIMIT, FTG_AREA_RADIUS_SQUARED, FTG_IGNORE_VALUE
 from .constants import DEFAULT_RANGE, DEFAULT_RIGHT_TARGET_INDEX, DEFAULT_LEFT_TARGET_INDEX
-from .constants import LIDAR_MINIMUM_ANGLE, LIDAR_ANGLE_INCREMENT, POSITION_PREDICTION_TIME
+from .constants import POSITION_PREDICTION_TIME
 
 
 class HalvesRacer(Racer):

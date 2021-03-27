@@ -18,9 +18,9 @@ This sub-package follows the standard usage instructions of the parent package.
 #### Run from python console
 
 ```python
-from f1tenth import follow_the_gap
+from f1tenth import reference_ftg
 
-follow_the_gap.run()
+reference_ftg.run()
 ```
 
 #### Run main directly
