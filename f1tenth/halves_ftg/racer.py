@@ -131,8 +131,8 @@ class HalvesRacer(Racer):
         Rather than using complicated Python mechanisms (zipping, filtering, etc.), a more verbose algorithm is used for
         the benefit of understanding the methodology of this method.
 
-        When encountering a non-zero number the sub-sequence is either lengthened if it already exists, or a new one
-        is created, whereas encountering a zero ends the current sub-sequence.
+        When encountering a non-ignore range the sub-sequence is either lengthened if it already exists, or a new one
+        is created, whereas encountering the ignore range ends the current sub-sequence.
         """
         current_left_index = 0
         current_right_index = 0
@@ -143,7 +143,7 @@ class HalvesRacer(Racer):
 
         for i, point in enumerate(points):
 
-            # Lengthen the sub-sequence or start a new one if non-zero number found
+            # Lengthen the sub-sequence or start a new one if non-ignore number found
             if point.range != ignore_range:
                 if is_sequence_started:
                     current_right_index += 1
