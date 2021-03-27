@@ -1,22 +1,22 @@
 """
-Middle-point FTG with MPC.
+Farthest-point FTG with MPC.
 """
 from typing import List
 import dataclasses
 import numpy as np
 from ..common import Racer, marker, PointFollowerMPC, CartesianPoint
 from ..common.marker import MarkerColour, MarkerPublisherChannel, MarkerType
-from .constants import LEFT_DIVERGENCE_INDEX, RIGHT_DIVERGENCE_INDEX
-from .constants import POSITION_PREDICTION_TIME, FTG_IGNORE_RANGE, SAFETY_RADIUS
+from .constants import LEFT_DIVERGENCE_INDEX, RIGHT_DIVERGENCE_INDEX, FTG_IGNORE_RANGE
+from .constants import SAFETY_RADIUS_SQUARED, POSITION_PREDICTION_TIME
 
 
-class MiddlePointRacer(Racer):
+class FarthestPointFollower(Racer):
     """
-    Drive towards the middle of the largest gap.
+    Drive towards the farthest point within the largest gap.
 
     More specifically, by filtering the values using safety radius (only the values N measurement units away from the
-    vehicle are considered) a collection of gaps is retrieved. Then, the largest gap is picked, and the vehicle will
-    drive towards the middle of it.
+    closest point to the vehicle are considered) a collection of gaps is retrieved. Then, the largest gap is picked,
+    and the vehicle will drive towards the middle of it.
 
     This implementation considers a static (constant) safety radius.
     """
@@ -49,11 +49,10 @@ class MiddlePointRacer(Racer):
             cartesian_point = cartesian_points[i]
             lidar_index = i + RIGHT_DIVERGENCE_INDEX
             lidar_range = ranges[i]
-
-            if lidar_range <= SAFETY_RADIUS:
-                lidar_range = FTG_IGNORE_RANGE
-
             points.append(self.Point(lidar_index, lidar_range, cartesian_point.x, cartesian_point.y))
+
+        # Avoid driving into points around the closest point
+        self._mark_safety_radius(points)
 
         # Visualise cartesian points cloud as a polygon
         visualisation_points = [CartesianPoint(point.cloud_point_x, point.cloud_point_y)
@@ -67,7 +66,20 @@ class MiddlePointRacer(Racer):
             )
 
         self._mpc.target_x, self._mpc.target_y = self._get_target_point(
-            self._find_longest_sequence(points, FTG_IGNORE_RANGE))
+            self._find_longest_sequence(points, FTG_IGNORE_RANGE)
+        )
+
+    @staticmethod
+    def _mark_safety_radius(points: List[Point]):
+        """
+        Compute the target reference point (find the farthest point within the largest gap).
+        """
+        closest_point = min(points, key=lambda p: p.range)
+        for point in points:
+            if (point.cloud_point_x - closest_point.cloud_point_x) ** 2 \
+                    + (point.cloud_point_y - closest_point.cloud_point_y) ** 2 \
+                    <= SAFETY_RADIUS_SQUARED:
+                point.range = FTG_IGNORE_RANGE
 
     @staticmethod
     def _find_longest_sequence(points: List[Point], ignore_range: float) -> List[Point]:
@@ -117,22 +129,21 @@ class MiddlePointRacer(Racer):
 
         return points[final_left_index:final_right_index]
 
-    def _get_target_point(self, points: List[Point]):
+    def _get_target_point(self, points: List[Point]) -> CartesianPoint:
         """
-        Compute the target reference point (find the middle of the largest gap).
+        Compute the target reference point.
         """
-        # Find target point by selecting either the default values, or the farthest point in current sample
         if not points:
             return CartesianPoint(self._mpc.target_x, self._mpc.target_y)
 
-        # Points not empty so can pick middle entry
-        target = points[len(points)//2]
+        # Points not empty so can pick farthest point
+        target = max(points, key=lambda point: point.range)
 
         return CartesianPoint(target.cloud_point_x, target.cloud_point_y)
 
     def prepare_drive_command(self):
         """
-        Follow The Gap (specifically, follow the middle of the largest gap) with MPC.
+        Follow The Gap (specifically, follow the farthest of the largest gap) with MPC.
         """
         position_x, position_y = self._retrieve_position()
         heading_angle = self._retrieve_heading_angle()

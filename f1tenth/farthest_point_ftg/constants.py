@@ -17,5 +17,5 @@ FTG_IGNORE_RANGE = 0
 # Need to store value for computing most likely position (for better MPC predictions)
 POSITION_PREDICTION_TIME = 0.020
 
-# All points around the car within this radius are marked as unsafe
-SAFETY_RADIUS = 5
+# Limiting area for ignoring points next to the closest point
+SAFETY_RADIUS_SQUARED = 16
