@@ -65,7 +65,6 @@ def mark(
     marker.scale.x = scale
     if marker_type == MarkerType.POINTS:
         marker.scale.y = scale
-        marker.scale.z = scale
 
     # Colour should be passed by the caller
     marker.color.r = colour.r
