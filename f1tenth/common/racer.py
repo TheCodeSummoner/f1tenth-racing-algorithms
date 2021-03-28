@@ -372,7 +372,7 @@ class FollowTheGapRacer(Racer):
         # Mark where the vehicle is going
         marker.mark(
             positions=[(self._mpc.target_x, self._mpc.target_y)],
-            channel=MarkerPublisherChannel.SECOND
+            channel=MarkerPublisherChannel.THIRD
         )
 
         # Predict the car's position in which it's likely to be after the computations are done
@@ -397,7 +397,7 @@ class FollowTheGapRacer(Racer):
             positions=self._mpc.get_prediction_coordinates(),
             colour=MarkerColour(0, 1, 1),
             scale=0.12,
-            channel=MarkerPublisherChannel.THIRD
+            channel=MarkerPublisherChannel.FOURTH
         )
 
     @abstractmethod
