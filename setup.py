@@ -10,10 +10,10 @@ ROOT = os.path.normpath(os.path.dirname(__file__))
 
 # Specify which files should be added to the installation
 PACKAGE_DATA = [
-    os.path.join(ROOT, "f1tenth", "res", "metadata.json"),
+    os.path.join(ROOT, "assets", "metadata.json"),
 ]
 
-with open(os.path.join(ROOT, "f1tenth", "res", "metadata.json")) as f:
+with open(os.path.join(ROOT, "assets", "metadata.json")) as f:
     metadata = json.load(f)
 
 setuptools.setup(
@@ -25,7 +25,7 @@ setuptools.setup(
     maintainer=metadata["__lead__"],
     maintainer_email=metadata["__email__"],
     url=metadata["__url__"],
-    packages=setuptools.find_packages(exclude=("tests",)),
+    packages=setuptools.find_packages(),
     package_data={"f1tenth": PACKAGE_DATA},
     include_package_data=True,
     classifiers=[
