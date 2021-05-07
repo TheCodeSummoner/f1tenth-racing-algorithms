@@ -4,8 +4,8 @@ Algorithm-relevant and tuning constants.
 from ..common.constants import LIDAR_MAX_INDEX
 
 # Define parameters here for easier configurability
-HORIZON_LENGTH = 6
-TIME_STEP = 0.027
+HORIZON_LENGTH = 20
+TIME_STEP = 0.05
 
 # Limits for deciding left and right halves (counter-clockwise)
 RIGHT_DIVERGENCE_INDEX = 350
