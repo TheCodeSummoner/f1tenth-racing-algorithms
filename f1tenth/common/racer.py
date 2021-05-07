@@ -365,6 +365,7 @@ class FollowTheGapRacer(Racer):
         """
         position_x, position_y = self._retrieve_position()
         heading_angle = self._retrieve_heading_angle()
+        print(heading_angle)
 
         # Change target waypoints if needed
         self._adjust_target_position(position_x, position_y, heading_angle)
