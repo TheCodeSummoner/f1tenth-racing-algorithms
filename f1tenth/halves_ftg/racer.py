@@ -104,7 +104,7 @@ class HalvesRacer(FollowTheGapRacer):
         )
         self._mpc.target_x, self._mpc.target_y = (left_x + right_x) / 2, (left_y + right_y) / 2
         import math
-        print(heading_angle, math.atan2(position_x - self._mpc.target_x, position_y - self._mpc.target_y))
+        print(heading_angle, math.atan2(self._mpc.target_y - position_y, self._mpc.target_x - position_x))
 
     @staticmethod
     def _mark_safety_radius(points: List[LidarPoint]):
