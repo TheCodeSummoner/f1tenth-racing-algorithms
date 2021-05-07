@@ -104,6 +104,7 @@ class HalvesRacer(FollowTheGapRacer):
         )
         self._mpc.target_x, self._mpc.target_y = (left_x + right_x) / 2, (left_y + right_y) / 2
         import math
+        print(self._mpc.target_x, self._mpc.target_y, position_x, position_y)
         print(heading_angle, -math.atan2(self._mpc.target_x - position_x, self._mpc.target_y - position_y))
 
     @staticmethod
