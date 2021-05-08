@@ -180,7 +180,7 @@ class ModelPredictiveControl(ABC):
             "ipopt.sb": "yes",
         } if self._suppress_outputs else {
             "ipopt.max_iter": 300,
-            "ipopt.linear_solver": "wsmp"
+            "ipopt.linear_solver": "ma_97"
         }
         self._controller.set_param(
             n_horizon=self._horizon_length,
