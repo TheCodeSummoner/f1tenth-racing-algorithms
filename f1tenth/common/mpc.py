@@ -180,6 +180,7 @@ class ModelPredictiveControl(ABC):
             "ipopt.sb": "yes",
             "ipopt.max_iter": 300,
             'ipopt.linear_solver': 'MA27',
+            "file_print_level": 12,
             "print_time": 0
         } if self._suppress_outputs else {
 
