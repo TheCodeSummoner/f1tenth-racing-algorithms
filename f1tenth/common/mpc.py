@@ -179,7 +179,6 @@ class ModelPredictiveControl(ABC):
             "ipopt.print_level": 0,
             "ipopt.sb": "yes",
         } if self._suppress_outputs else {
-            'ipopt.linear_solver': 'MA27',
             "ipopt.max_iter": 300,
         }
         self._controller.set_param(
