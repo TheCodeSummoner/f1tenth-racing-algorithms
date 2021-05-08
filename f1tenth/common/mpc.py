@@ -198,6 +198,8 @@ class ModelPredictiveControl(ABC):
         self._controller.bounds["lower", "_u", "steering_angle"] = self._control_constraints.min_steering_angle
         self._controller.bounds["upper", "_u", "steering_angle"] = self._control_constraints.max_steering_angle
 
+        self._controller.set_rterm(velocity=0.01, steering_angle=0.01)
+
     def configure_graphics(self):
         """
         Matplotlib-based plotter and connect relevant data points to it.
@@ -356,7 +358,7 @@ class PointFollowerMPC(ModelPredictiveControl):
         """
         ha_cost = (self._heading_angle - casadi.atan2(self._target_y - self._position_y, self._target_x - self._position_x)) ** 2
         d_cost = (self._target_x - self._position_x) ** 2 + (self._target_y - self._position_y) ** 2
-        return d_cost + ha_cost/(casadi.pi/2)
+        return d_cost + ha_cost
 
     def configure_model(self):
         """
