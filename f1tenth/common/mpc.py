@@ -301,6 +301,9 @@ class PointFollowerMPC(ModelPredictiveControl):
         self._tx = 0
         self._ty = 0
 
+        self._sxv = 0
+        self._syv = 0
+
     @property
     def target_x(self) -> float:
         """
@@ -339,6 +342,8 @@ class PointFollowerMPC(ModelPredictiveControl):
         for k in range(self._horizon_length + 1):
             template["_tvp", k, "target_x"] = self._tx
             template["_tvp", k, "target_y"] = self._ty
+            template["_tvp", k, "sx"] = self._sxv
+            template["_tvp", k, "sy"] = self._syv
 
         return template
 
@@ -358,7 +363,8 @@ class PointFollowerMPC(ModelPredictiveControl):
         """
         ha_cost = (self._heading_angle - casadi.atan2(self._target_y - self._position_y, self._target_x - self._position_x)) ** 2
         d_cost = (self._target_x - self._position_x) ** 2 + (self._target_y - self._position_y) ** 2
-        return d_cost + ha_cost
+        d_cost_base = (self._target_x - self._sx) ** 2 + (self._target_y - self._sy) ** 2
+        return d_cost/d_cost_base + ha_cost
 
     def configure_model(self):
         """
@@ -376,6 +382,17 @@ class PointFollowerMPC(ModelPredictiveControl):
         self._target_y = self._model.set_variable(
             var_type="_tvp",
             var_name="target_y",
+            shape=(1, 1)
+        )
+
+        self._sx = self._model.set_variable(
+            var_type="_tvp",
+            var_name="sx",
+            shape=(1, 1)
+        )
+        self._sy = self._model.set_variable(
+            var_type="_tvp",
+            var_name="sy",
             shape=(1, 1)
         )
 
