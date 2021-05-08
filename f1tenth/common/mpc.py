@@ -182,6 +182,9 @@ class ModelPredictiveControl(ABC):
             "ipopt.max_iter": 300,
             "ipopt.check_derivatives_for_naninf": "yes",
             "ipopt.derivative_test": "second-order",
+            "halt_on_ampl_error": "no",
+            "ipopt.halt_on_ampl_error": "no",
+            "ampl.halt_on_ampl_error": "no",
             #"ipopt.linear_solver": "MA57"
         }
         self._controller.set_param(
