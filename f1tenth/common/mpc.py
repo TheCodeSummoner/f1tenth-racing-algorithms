@@ -60,7 +60,7 @@ class ModelPredictiveControl(ABC):
     angle) which are used within the above elements. Extensions are possible by rewriting most of the base class' code.
     """
 
-    def __init__(self, horizon_length: int = 5, time_step: float = 0.1, suppress_outputs: bool = True,
+    def __init__(self, horizon_length: int = 5, time_step: float = 0.1, suppress_outputs: bool = False,
                  plot_results: bool = True, control_constraints: ControlConstraints = ControlConstraints()):
         self._horizon_length = horizon_length
         self._time_step = time_step
@@ -198,7 +198,7 @@ class ModelPredictiveControl(ABC):
         self._controller.bounds["lower", "_u", "steering_angle"] = self._control_constraints.min_steering_angle
         self._controller.bounds["upper", "_u", "steering_angle"] = self._control_constraints.max_steering_angle
 
-        self._controller.set_rterm(velocity=0.01, steering_angle=0.01)
+        self._controller.set_rterm(velocity=0.001, steering_angle=0.001)
 
     def configure_graphics(self):
         """
