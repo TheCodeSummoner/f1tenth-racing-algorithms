@@ -345,7 +345,7 @@ class PointFollowerMPC(ModelPredictiveControl):
         """
         No stage cost is specified in this approach.
         """
-        return casadi.DM.zeros()
+        return 10 - self._velocity
 
     @property
     def terminal_cost(self):
