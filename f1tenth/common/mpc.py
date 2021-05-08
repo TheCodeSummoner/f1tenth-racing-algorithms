@@ -180,8 +180,6 @@ class ModelPredictiveControl(ABC):
             "ipopt.sb": "yes",
         } if self._suppress_outputs else {
             "ipopt.max_iter": 300,
-            "ipopt.check_derivatives_for_naninf": "yes",
-            "ipopt.derivative_test": "none",
             #"ipopt.linear_solver": "MA57"
         }
         self._controller.set_param(
