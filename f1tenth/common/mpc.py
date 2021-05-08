@@ -364,7 +364,7 @@ class PointFollowerMPC(ModelPredictiveControl):
         ha_cost = (self._heading_angle - casadi.fmin(casadi.atan2(self._target_y - self._position_y, self._target_x - self._position_x) ** 2, 0.001))
         d_cost = (self._target_x - self._position_x) ** 2 + (self._target_y - self._position_y) ** 2
         d_cost_base = (self._target_x - self._sx) ** 2 + (self._target_y - self._sy) ** 2
-        return d_cost + ha_cost
+        return 1000* d_cost + ha_cost
 
     def configure_model(self):
         """
