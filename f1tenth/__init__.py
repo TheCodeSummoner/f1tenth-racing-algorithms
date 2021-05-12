@@ -7,7 +7,7 @@ import json
 # Fetch the root folder to specify absolute paths to the "include" files
 ROOT = os.path.join(os.path.normpath(os.path.dirname(__file__)), "..")
 
-with open(os.path.join(__file__, "", "metadata.json")) as f:
+with open(os.path.join(ROOT, "assets", "metadata.json")) as f:
     metadata = json.load(f)
 
 __title__ = metadata["__title__"]
